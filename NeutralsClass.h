@@ -54,9 +54,19 @@ public :
   std::vector<float>   *pdgId;
   std::vector<float>   *label;
   std::vector<float>   *PId;
+  std::vector<float>   *primary_x;
+  std::vector<float>   *primary_y;
+  std::vector<float>   *primary_z;
+  std::vector<float>   *primary_phi;
+  std::vector<float>   *primary_eta;
   std::vector<float>   *convRadius;
   std::vector<float>   *convPhi;
   std::vector<float>   *convZ;
+  std::vector<float>   *conv_x;
+  std::vector<float>   *conv_y;
+  std::vector<float>   *conv_z;
+  std::vector<float>   *conv_phi;
+  std::vector<float>   *conv_eta;
   std::vector<float>   *energy;
   std::vector<float>   *nlegs;
   std::vector<float>   *plabel;
@@ -113,10 +123,20 @@ public :
    TBranch        *b_dr;   //!
    TBranch        *b_pdgId;   //!
    TBranch        *b_label;   //!
+   TBranch        *b_primary_x;
+   TBranch        *b_primary_y;
+   TBranch        *b_primary_z;
+   TBranch        *b_primary_phi;
+   TBranch        *b_primary_eta;
    TBranch        *b_PId;   //!
    TBranch        *b_convRadius;   //!
    TBranch        *b_convPhi;   //!
    TBranch        *b_convZ;   //!
+   TBranch        *b_conv_x;
+   TBranch        *b_conv_y;
+   TBranch        *b_conv_z;
+   TBranch        *b_conv_phi;
+   TBranch        *b_conv_eta;
    TBranch        *b_energy;   //!
    TBranch        *b_nlegs;   //!
    TBranch        *b_plabel;   //!

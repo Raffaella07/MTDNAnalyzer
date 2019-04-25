@@ -329,6 +329,7 @@ void Trackplotter(std::string PLOTPATH,struct tr track,struct photon p1,struct p
 	track_plot->SaveAs((PLOTPATH+"/event"+std::to_string(event)+".pdf").c_str());
 }
 
+
 void setStyle() {
 
 	// set the TStyle
