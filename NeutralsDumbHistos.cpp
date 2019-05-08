@@ -11,12 +11,13 @@
 #include "TString.h"
 #include "TGraph.h"
 #include "TLegend.h"
-
+#include "NeutralsClass.h"
+#include "NeutralsClass.cpp"
 struct track {
-	float pt=-99;
-	int q=-99;
-	float phi=-99;
-	float eta=-99;
+	std::vector <float> *pt=0;
+	std::vector <int> *q=0;
+	std::vector <float> *phi=0;
+	std::vector <float> *eta=0;
 };
 
 struct ele {
@@ -42,7 +43,7 @@ struct pho {
 
 void SavePlot (char *, TH1F *, const char *, bool);
 void MaterialBudget(TH1F*,TH1F*,std::string );
-float TracksMatching(std::vector<struct track>,std::vector<struct ele> ,float, std::string,TH1F*,TH1F*);
+float TracksMatching(struct track,std::vector<struct ele> ,float, std::string,TH1F*,TH1F*);
 
 TGraph* rad_lenght(TH1F* hist);
 
@@ -51,19 +52,30 @@ int main (int argc, char **argv){
 	TFile* file = TFile::Open(argv[1]);
 	std::string outname = argv[2];
 	std::cout << outname << std::endl;
+	TTree* gentree = (TTree*)file->Get("gen_tree");
+	TTree* tracktree= (TTree*)file->Get("tracks_tree");
+	TTree* mcttree = (TTree*)file->Get("mct_tree");
+	TTree* candtree= (TTree*)file->Get("cand_tree");
+	TTree* dumbtree= (TTree*)file->Get("dumb_tree");
+	NeutralsClass track,gen,mct,cand;
+	track.Init(tracktree);
+	gen.Init(gentree);
+	mct.Init(mcttree);
+	cand.Init(candtree);
+	/*std::string outname = argv[2];
+	std::cout << outname << std::endl;
 	TTree* neutree = (TTree*)file->Get("neu_tree");
 	TTree* tracktree= (TTree*)file->Get("tracks_tree");
-
+*/
 	int i,j,k,neu_event,track_event, counter,temp,TotMatching=0;
 	std::vector <float>* particleId=0;
 	std::vector <float>*  pt=0, *eta=0,*phi=0;
 	std::vector <float>* ele1_pt=0, *ele2_pt=0,*ele1_phi=0, *ele2_phi=0, *match_ele1=0,*match_ele2=0, *convRadius=0,*gen_DR=0;
 	std::vector<int>* nlegs=0;
-	struct track etrack;
+	struct track Eventetracks;
 	struct pho photon;
 	struct ele electron;
 	std::string  PLOTPATH;
-	std::vector<struct track> Eventetracks;
 	std::vector<struct pho> Eventphotons;
 	std::vector<struct ele> Eventelectrons;
 
@@ -71,24 +83,24 @@ int main (int argc, char **argv){
 	tracktree->GetEntry(23);
 	std::cout << "________________trackevent________________--" << track_event << std::endl; 
 	
-	neutree->SetBranchAddress("pt",&pt);
-	neutree->SetBranchAddress("eta",&eta);
-	neutree->SetBranchAddress("mct_ele1_pt",&ele1_pt);
+	candtree->SetBranchAddress("pt",&pt);
+	candtree->SetBranchAddress("eta",&eta);
+/*	neutree->SetBranchAddress("mct_ele1_pt",&ele1_pt);
 	neutree->SetBranchAddress("mct_ele2_pt",&ele2_pt);
 	neutree->SetBranchAddress("mct_ele1_phi",&ele1_phi);
-	neutree->SetBranchAddress("mct_ele2_phi",&ele2_phi);
-	neutree->SetBranchAddress("mct_nlegs",&nlegs);
-	neutree->SetBranchAddress("mct_convRadius",&convRadius);
-	neutree->SetBranchAddress("event",&neu_event);
-	neutree->SetBranchAddress("phi",&phi);
-	//tracktree->SetBranchAddress("Track_pt",&etrack.pt);
-	//tracktree->SetBranchAddress("Track_phi",&etrack.phi);
-	neutree->SetBranchAddress("particleId",&particleId);
-	tracktree->SetBranchAddress("Track_charge",&etrack.q);
-	neutree->SetBranchAddress("mct_eles_dr",&gen_DR);
-	neutree->SetBranchAddress("ele1_match",&match_ele1);
-	neutree->SetBranchAddress("ele2_match",&match_ele2);
-	//tracktree->SetBranchAddress("Track_eta",&etrack.eta);
+	neutree->SetBranchAddress("mct_ele2_phi",&ele2_phi);*/
+	mcttree->SetBranchAddress("nlegs",&nlegs);
+	mcttree->SetBranchAddress("convRadius",&convRadius);
+	mcttree->SetBranchAddress("event",&neu_event);
+	candtree->SetBranchAddress("phi",&phi);
+	tracktree->SetBranchAddress("Track_pt",&Eventetracks.pt);
+	tracktree->SetBranchAddress("Track_In_phi",&Eventetracks.phi);
+	mcttree->SetBranchAddress("PId",&particleId);
+	tracktree->SetBranchAddress("Track_charge",&Eventetracks.q);
+//	neutree->SetBranchAddress("mct_eles_dr",&gen_DR);
+//	neutree->SetBranchAddress("ele1_match",&match_ele1);
+//	neutree->SetBranchAddress("ele2_match",&match_ele2);
+	tracktree->SetBranchAddress("Track_In_eta",&Eventetracks.eta);
 
 	
 	PLOTPATH=std::string(" ~/CMSSW_10_4_0_mtd5_prova/plots/"+outname+"events");
@@ -110,58 +122,64 @@ int main (int argc, char **argv){
 	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",10,0,10);
 	TH2F * tracker =new TH2F("tracker radiograpy","tracker radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
 //	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
-	for (i=0; i<neutree->GetEntries();i++){
 		
+	for(i=0;i<cand.fChain->GetEntries();i++){
+		cand.fChain->GetEntry(i);
+		mct.fChain->GetEntry(i);
+		track.fChain->GetEntry(i);
 		std::cout << "HEREEEEEE" << std::endl;	
-		neutree->GetEntry(i);
 //		if (i==0) temp = event-1;
 				
 			std::cout << "neu EVENT____" << neu_event << std::endl;
-			for(j=0; j<pt->size();j++){	
-			//	if(particleId->at(j) ==4 ){
+			for (j =0; j < pt->size(); j++){	
+			//	if(particleId->at(j) ==4 ){}
 				histo_pt->Fill(pt->at(j));
 				histo_eta->Fill(eta->at(j));
-				histo_rad->Fill(convRadius->at(j));
-				if(nlegs->at(j) > 0){
-					histoconv_rad->Fill(convRadius->at(j));
+				std::cout << "label______" << cand.label->at(j) << std::endl;
+				if(cand.label->at(j)<10 && cand.label->at(j)>0){
+				histo_rad->Fill(convRadius->at(cand.label->at(j)));
+				if(nlegs->at(cand.label->at(j)) > 0){
+					histoconv_rad->Fill(convRadius->at(cand.label->at(j)));
 					if (eta->at(j) < 1.4  &&  eta->at(j) > -1.4){ 
-						if (convRadius->at(j) < 110 ){
+						if (convRadius->at(cand.label->at(j)) < 110 )
+							{
 							histoconv_pt->Fill(pt->at(j));
 							histoconv_eta->Fill(eta->at(j));
 						}
 
-						else if( (convRadius->at(j) > 110 && convRadius->at(j) < 122) ){
+						else if( (convRadius->at(cand.label->at(j)) > 110 && convRadius->at(cand.label->at(j)) < 140) )
+						{
 							histocut_eta->Fill(eta->at(j));
 						}
 
-						tracker->Fill(convRadius->at(j)*cos(phi->at(j)),convRadius->at(j)*sin(phi->at(j)));
+						tracker->Fill(convRadius->at(cand.label->at(j))*cos(mct.phi->at(cand.label->at(j))),convRadius->at(cand.label->at(j))*sin(mct.phi->at(cand.label->at(j))));
 					}	
 				}
-				if (particleId->at(j) == 4) {
+				
+				std::cout << "inside if______"<< cand.label->at(j) <<  std::endl;
+				if (particleId->at(cand.label->at(j)) == 4) {
 				photon.pt = pt->at(j);
 				photon.eta = eta->at(j);
 				photon.phi = phi->at(j);
-				photon.nlegs = nlegs->at(j);
-				photon.convRadius = convRadius->at(j);
-				photon.ele1.pt = ele1_pt->at(j);
+				photon.nlegs = nlegs->at(cand.label->at(j));
+				photon.convRadius = convRadius->at(cand.label->at(j));
+			/*	photon.ele1.pt = ele1_pt->at(j);
 				photon.ele1.phi = ele1_phi->at(j);
 				photon.ele2.pt = ele2_pt->at(j);
 				photon.ele2.phi = ele2_phi->at(j);
-				
+				*/
 				Eventphotons.push_back(photon);
 			}
-			else if (particleId->at(j) ==2 ){
+			else if (particleId->at(cand.label->at(j)) ==2 ){
 
 				electron.pt = pt->at(j);
 				electron.eta = eta->at(j);
 				electron.phi = phi->at(j);
 				electron.q = 1;
-				if (match_ele1->at(j) ==1 || match_ele2->at(j) == 1){ electron.IsFromConversion = true;
-				electron.vertex = convRadius->at(j);
-				if (match_ele1->at(j) == 1) electron.mct_truth_pt=ele1_pt->at(j) ;
-				else	 electron.mct_truth_pt=ele2_pt->at(j); 				
-				}
-				else electron.IsFromConversion = false;
+				std::cout << "inside if______"<< convRadius->at(cand.label->at(j)) <<  std::endl;
+				/*if (match_ele1->at(j) ==1 || match_ele2->at(j) == 1){}*/ electron.IsFromConversion = true;
+				electron.vertex = convRadius->at(cand.label->at(j));
+				electron.mct_truth_pt=mct.pt->at(cand.label->at(j)) ;
 				Eventelectrons.push_back(electron);
 			}
 		}
@@ -174,6 +192,7 @@ int main (int argc, char **argv){
 		//		std::cout << "	" <<  mct_convRadius*cos(mct_phi) << "   #######" << std::endl;
 		//			
 	//	radius_DR->Fill(photon.convRadius, gen_DR);
+		}
 		for (j=0; j < Eventelectrons.size(); j++){
 		if (Eventelectrons[j].vertex < 100 && Eventelectrons[j].IsFromConversion == true ){
 		
@@ -185,10 +204,10 @@ int main (int argc, char **argv){
 		
 	
 
-			for(k=0; k <tracktree->GetEntries(); k++ ){
+/*			for(k=0; k <tracktree->GetEntries(); k++ ){
 				tracktree->GetEntry(k);		
 				if (track_event == neu_event){ 	Eventetracks.push_back(etrack);		
-			}
+			}*/
 			
 	/*		else if (particleId = -3){
 		
@@ -196,12 +215,15 @@ int main (int argc, char **argv){
 
 			}*/
 		
-		}
+	//	}
 		if (pt->size() < 4 ) TotMatching += TracksMatching(Eventetracks,Eventelectrons,0.3,PLOTPATH,matched_t,matched_e);
 		
 		Eventphotons.clear();
 		Eventelectrons.clear();
-		Eventetracks.clear();
+		Eventetracks.pt->clear();
+		Eventetracks.phi->clear();
+		Eventetracks.eta->clear();
+		Eventetracks.q->clear();
 	}
 	std::cout << "Number of converted photons matched to tracks" << TotMatching << std::endl;
 	histoconv_pt->GetXaxis()->SetTitle("pt(Gev/c)");
@@ -356,7 +378,7 @@ TGraph* rad_lenght(TH1F* hist){
 	return MBudget;
 }
 
-float TracksMatching(std::vector<struct track> tracks, std::vector<struct ele> electrons ,  float deltaRmax,std::string PLOTPATH,TH1F* matched_t,TH1F* matched_e){
+float TracksMatching(struct track tracks, std::vector<struct ele> electrons ,  float deltaRmax,std::string PLOTPATH,TH1F* matched_t,TH1F* matched_e){
 //	float radius =  129;
 	int match=0;
 //	float cand_X,cand_Y, e_X, e_Y;
@@ -364,22 +386,22 @@ float TracksMatching(std::vector<struct track> tracks, std::vector<struct ele> e
 	
 	
 	
-	std::cout << "_____nphotons______ntracks_______" << electrons.size() << "________________" <<tracks.size() << std::endl;
+	std::cout << "_____nphotons______ntracks_______" << electrons.size() << "________________" <<tracks.pt->size() << std::endl;
 	for(i=0; i<electrons.size();i++){
-		for(j=0; j < tracks.size();j++){
-			std:: cout << "track pt____________" << tracks[j].pt << std::endl;
+		for(j=0; j < tracks.pt->size();j++){
+			std:: cout << "track pt____________" << tracks.pt->at(j) << std::endl;
 			if(electrons[i].vertex < 100 && electrons[j].IsFromConversion== true){
 			//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).first;
 			//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).second;
 			//	e_X = ElectronProp(0,0,tracks[j].phi).first;
 			//	e_Y = ElectronProp(0,0,tracks[j].phi).second;
-				float deltaR = sqrt(pow((electrons[i].phi-tracks[j].phi),2)+pow((electrons[i].eta-tracks[j].eta),2));
+				float deltaR = sqrt(pow((electrons[i].phi-tracks.phi->at(j)),2)+pow((electrons[i].eta-tracks.eta->at(j)),2));
 				std::cout << "DeltaR = " << deltaR << std::endl;
 				if (deltaR < deltaRmax) {
 					match ++;
 					std::cout << "converted electron-track matching succeded"<<std::endl;
 					std::cout << "DeltaR = " << deltaR << std::endl;
-					matched_t->Fill(tracks[j].pt);
+					matched_t->Fill(tracks.pt->at(j));
 					matched_e->Fill(electrons[i].pt);
 				}
 

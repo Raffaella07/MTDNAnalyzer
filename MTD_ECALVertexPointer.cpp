@@ -1,54 +1,35 @@
-#include "TTree.h"
-#include "TMath.h"
-#include "TFile.h"
-#include "TH1.h"
-#include "TCanvas.h"
-#include <utility>  
-#include <iostream>
-#include <vector>
-#include "TH2.h"
-#include <string>
-#include "TString.h"
-#include "TEllipse.h"
-#include "TArrow.h"
-#include "TStyle.h"
-#include "TMarker.h"
-#include "TText.h"
-#include "TF1.h"
-#include "TVector3.h"
-#include "TGraphErrors.h"
-#include "TGraph.h"
-#include "TLegend.h"
-#include "NeutralsClass.h"
-#include "NeutralsClass.cpp"
-
-struct pos{
-
-    float x;
-    float y;
-    float z;
-    float phi;
-    float eta;
+//#include "TTree.h"
+//#include "TMath.h"
+//#include "TFile.h"
+//#include "TH1.h"
+//#include "TCanvas.h"
+//#include <utility>  
+//#include <iostream>
+//#include <vector>
+//#include "TH2.h"
+//#include <string>
+//#include "TString.h"
+//#include "TEllipse.h"
+//#include "TArrow.h"
+//#include "TStyle.h"
+//#include "TMarker.h"
+//#include "TText.h"
+//#include "TF1.h"
+//#include "TVector3.h"
+//#include "TGraphErrors.h"
+//#include "TGraph.h"
+//#include "TPaveText.h"
+//#include "TLegend.h"
+//#include "NeutralsClass.h"
+//#include "NeutralsClass.cpp"
+#include "MTD_ECALUtils.cc"
 
 
 
-};
-
-float matcher(float,float,std::vector<float>*,std::vector <float>* ,std::vector <float>* ,std::vector <float>* ,std::vector <float>* ,struct pos*, std::pair <float,float>* );
-
-void SavePlot (char * , TH1D *, const char*, bool );
-
-void Slicer(std::string ,int ,float, float ,std::string ,TH2D *,std::string );
-
-void setStyle();
-
-float VertexDistance(TVector3* ,float , float , float , float , bool );
-
-void Plotter(float ,float , float, float , TVector3 * ,float , float );
 
 int main(int argc, char **argv){
 
-
+	//--grab and initialize trees
 	TFile* file = TFile::Open(argv[1]);
 	std::string outname = argv[2];
 	std::cout << outname << std::endl;
@@ -56,38 +37,82 @@ int main(int argc, char **argv){
 	TTree* tracktree= (TTree*)file->Get("tracks_tree");
 	TTree* mcttree = (TTree*)file->Get("mct_tree");
 	TTree* candtree= (TTree*)file->Get("cand_tree");
+	TTree* dumbtree= (TTree*)file->Get("dumb_tree");
 	NeutralsClass track,gen,mct,cand;
 	track.Init(tracktree);
 	gen.Init(gentree);
 	mct.Init(mcttree);
 	cand.Init(candtree);
+
+	//--indices definition
 	int i,j,k;
 	float dr,label=-1;
-	int bin_dr,bin_pt;
-	float dr_min, dr_max,pt_min,pt_max;
+	//--bin variables
+	int bin_dr,bin_pt,bin_eta;
+	float dr_min, dr_max,pt_min,pt_max,eta_min,eta_max;
+	//--filenames
+	std::string ang_filename[4]={"gen_clus_pho_deta.pdf","gen_clus_pho_dphi.pdf","gen_clus_gpho_eta.pdf", "gen_clus_gpho_phi.pdf"};
+
+
+
+	Double_t ybin[2];
+	//--Path to plots
 	std::string PLOTPATH=std::string(" ~/CMSSW_10_4_0_mtd5_prova/plots/"+outname+"events/VertexPointer");
 	system(("mkdir "+PLOTPATH).c_str());
 	setStyle();
-
-	bin_dr=15;
+	//--set bin numbers and ranges
+	bin_dr=50;
 	bin_pt=15;
 	dr_min=0;
-	dr_max=1;
+	dr_max=0.4;
 	pt_min=0;
 	pt_max=10;
+	bin_eta=10;
+	eta_min=0;
+	eta_max=3;
+	ybin[0]=0.0;
+	ybin[1]=0.02;
 	
-	TH1D * proj_full[4];
+	//--Histos and fit definitions
+	TH1D * proj_full[7];
+//	TF1* narrow_gaus = new TF1("narrowgaus","gaus",-25,25);
+//	TF1* wide_gaus = new TF1("widegaus","gaus",-15,15);
+
+
+/*	Double_t par[6];*/
+	TF1* doublegaus_fit;// =new TF1 ("doublegaus", "[0]*exp(-0.5*((x-[1])/[2])**2)+[3]*exp(-0.5*((x-[4])/[5])**2)",-25,25);
+//	doublegaus_fit->SetParLimits(2,0,1000000);
+//	doublegaus_fit->SetParLimits(5,0,1000000);
+	
+
+
+	
+	TH1D* angular_dis[4];
+	TF1* angular_fit[4];	
+	angular_dis[0]= new TH1D("#eta_{clus}-#eta_{gen}","#eta_{clus}-#eta_{gen}",40,-0.1,0.1);
+	angular_dis[1]= new TH1D("#phi_{clus}-#phi_{gen}","#phi_{clus}-#phi_{gen}",40,-0.05,0.05);
+	angular_dis[2]= new TH1D("#eta_{clus}-#eta_{geom}","#eta_{clus}-#eta_{geom}",40,-0.03,0.03);
+	angular_dis[3]= new TH1D("#phi_{clus}-#phi_{geom}","#phi_{clus}-#phi_{geom}",40,-0.03,0.03);
+	TH1D* slices[2];
 	TH2D* dr_photon_clus = new TH2D("","dr among clusters and matched mct photons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* dr_electron_clus = new TH2D("","dr among clusters and matched mct electrons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* photon_dr_clusMTD = new TH2D("","dr among clusters and MTD hit for mct photons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* ele_dr_clusMTD = new TH2D("","dr among clusters and Mtd hit for mct electrons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
-	TH1D* photon_vert_dr = new TH1D("","distance of the real vertex wrt to the ECAL_MTD line",25,0,10);
+	TH2D* photon_vert_dx = new TH2D("","dx of the real vertex wrt to the ECAL_MTD line",10,-15,15,50,0.0,0.4);
+	TH2D* photon_vert_dy = new TH2D("","dy of the real vertex wrt to the ECAL_MTD line",35,-15,15,2,0,0.5);
+	TH2D* photon_vert_dz = new TH2D("","dz of the real vertex wrt to the ECAL_MTD line",45,-25,25,bin_eta,eta_min,eta_max);
 
+
+
+
+	//--loop on events
 	for(i=0;i<cand.fChain->GetEntries();i++){
 		cand.fChain->GetEntry(i);
 		mct.fChain->GetEntry(i);
-		
+		//--loop on mct photons
 		for(j=0;j<mct.pt->size();j++){
+			dr =-1;
+			//-- matching variables definitions
 			std::pair <float,float>  matched_mct;
 			std::pair <float,float>  pair_clus;
 			struct pos matched_clus;
@@ -97,27 +122,45 @@ int main(int argc, char **argv){
 			vertex->SetX(mct.primary_x->at(j));
 			vertex->SetY(mct.primary_y->at(j));
 			vertex->SetZ(mct.primary_z->at(j));
-			dr = matcher(mct.eta->at(j),mct.phi->at(j),cand.ecaleta, cand.ecalphi,cand.ecalx,cand.ecaly,cand.ecalz,&matched_clus,&matched_mct);
-				
-			if(dr != -1){
+//		std::cout << "size___" << cand.pt->size() << "___" << cand.ecalx->size() << std::endl;
+//			//--matches mct phtons to clusters
+			dr = matcher(mct.eta->at(j),mct.phi->at(j),cand.ecaleta, cand.ecalphi,cand.ecalx,cand.ecaly,cand.ecalz,cand.pt,&matched_clus,&matched_mct);
+//		std::cout << "herewww"	 << std::endl; 	
+			if(dr <0.05){
 				label = mct.PId->at(j);
-				if (label == 4 ) dr_photon_clus->Fill(dr,mct.pt->at(j));
-				else if(label == 2) dr_electron_clus->Fill(dr,mct.pt->at(j));
+				if (label == 4  && (mct.convRadius->at(j)>116 && mct.convRadius->at(j) < 119)) //--MTD converting photons
+				{ 
+				 dr_photon_clus->Fill(dr,mct.pt->at(j));
+				AngularCoordinates(angular_dis,matched_mct,matched_clus,vertex);	//--angular coordinates histograms
+				}else if(label == 2) dr_electron_clus->Fill(dr,mct.pt->at(j));
 			}
-			dr = matcher(matched_clus.eta,matched_clus.phi,cand.MTDeta, cand.MTDphi, cand.MTDx, cand.MTDy, cand.MTDz,&matched_MTDhit,&pair_clus);
-			std::cout  << "_____" << sqrt(matched_clus.x*matched_clus.x+matched_clus.y*matched_clus.y) << std::endl;
-			std::cout  << "_____" << sqrt(matched_MTDhit.x*matched_MTDhit.x+matched_MTDhit.y*matched_MTDhit.y) << std::endl;
+			dr = matcher(matched_clus.eta,matched_clus.phi,cand.MTDeta, cand.MTDphi, cand.MTDx, cand.MTDy, cand.MTDz,cand.pt,&matched_MTDhit,&pair_clus);
+			std::cout << "clus_mtd dr____" << dr << "label__" <<label <<std::endl;
+
 			if(dr !=-1){
-				if (label == 4 ){
-				 photon_dr_clusMTD->Fill(dr,mct.pt->at(j));
-				std::cout << "hereee" << std::endl;
-					if(dr < 0.01){
-						
-						float dxy = VertexDistance(vertex,matched_MTDhit.x,matched_clus.x,matched_MTDhit.y,matched_clus.y,false);	
-						float dzy = VertexDistance(vertex,matched_MTDhit.z,matched_clus.z,matched_MTDhit.y,matched_clus.y,true);	
-						if(dxy != -1 && dzy != -1){	
-						std::cout << "displacements" << dxy << "____" << dzy << std::endl;
-						photon_vert_dr->Fill(sqrt(dxy*dxy + dzy*dzy));									
+				if (label == 4 && (mct.convRadius->at(j)>116 && mct.convRadius->at(j) < 119)){ //--MTD converting photons
+				 photon_dr_clusMTD->Fill(dr,matched_MTDhit.pt);
+			//	std::cout << "hereee" << std::endl;
+					if(dr < 0.05  && sqrt(pow(matched_clus.x,2)+pow(matched_clus.y,2))>129 && sqrt(pow(matched_MTDhit.x,2)+pow(matched_MTDhit.y,2))>116){
+						std::cout << "" << std::endl;
+						std::cout << "before function" << std::endl;
+						std::cout << "coord_MTDx" << matched_MTDhit.x <<"ECALX__" <<  matched_clus.x << std::endl;
+						std::cout << "coord_MTDy" << matched_MTDhit.y << "ECALY__"<< matched_clus.y << std::endl;
+						std::cout << "" << std::endl;
+						std::cout << "in function" << std::endl;
+						std::cout << "dx" << std::endl;
+						float dx = VertexDistance(vertex,matched_MTDhit.x,matched_clus.x,matched_MTDhit.y,matched_clus.y,false,PLOTPATH);	
+						std::cout << "dy" << std::endl;
+						float dy = VertexDistance(vertex,matched_MTDhit.x,matched_clus.x,matched_MTDhit.y,matched_clus.y,true,PLOTPATH);	
+						std::cout << "dz" << std::endl;
+						float dz = VertexDistance(vertex,matched_MTDhit.z,matched_clus.z,matched_MTDhit.y,matched_clus.y,false,PLOTPATH);	
+						std::cout << "" << std::endl;
+						if(dx != -1 && dy != -1 && dz != -1 ){	
+					//	std::cout << "displacements" << dx << "____" << dz << std::endl;
+					/*	if(sqrt(dxy*dxy + dzy*dzy) < 10)*/
+						photon_vert_dx->Fill(dx,dr);
+						photon_vert_dy->Fill(dy,dr);
+						photon_vert_dz->Fill(dz,mct.pt->at(j));
 						}
 					}
 				}
@@ -136,263 +179,82 @@ int main(int argc, char **argv){
 	system(("mkdir"+PLOTPATH+"/controlplots").c_str());
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",photon_dr_clusMTD,"Sphoton_dr_clusMTD");
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",ele_dr_clusMTD,"Sele_dr_clusMTD");
+	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"pt(Gev/c)",photon_vert_dz,"Sphoton_vert_dz");
+	
+	slices[0]=photon_vert_dx->ProjectionY("p",0,bin_dr-1);
 	proj_full[0]=dr_photon_clus->ProjectionX("1",0,bin_pt-1);
 	proj_full[1]=dr_electron_clus->ProjectionX("2",0,bin_pt-1);
         proj_full[2]=photon_dr_clusMTD->ProjectionX("3",0,bin_pt-1);
 	proj_full[3]=ele_dr_clusMTD->ProjectionX("4",0,bin_pt-1);
+	proj_full[4]=photon_vert_dx->ProjectionX("5",0,bin_dr-1);
+	proj_full[5]=photon_vert_dy->ProjectionX("6",0,bin_dr-1);
+	proj_full[6]=photon_vert_dz->ProjectionX("7",0,bin_dr-1);
+	
 	proj_full[0]->GetXaxis()->SetTitle("dr");
 	proj_full[1]->GetXaxis()->SetTitle("dr");
 	proj_full[2]->GetXaxis()->SetTitle("dr");
 	proj_full[3]->GetXaxis()->SetTitle("dr");
-	proj_full[0]->GetYaxis()->SetTitle("entries");
-	proj_full[1]->GetYaxis()->SetTitle("entries");
-	proj_full[2]->GetYaxis()->SetTitle("entries");
-	proj_full[3]->GetYaxis()->SetTitle("entries");
-	SavePlot("dr among matched mct photons and clusters",proj_full[0],(PLOTPATH+"/dr_photon_clus.pdf").c_str(),false);
-	SavePlot("dr among matched mct electrons and clusters",proj_full[1],(PLOTPATH+"/dr_electron_clus.pdf").c_str(),false);
-	SavePlot("dr among MTD hit and cluster for mct photons",proj_full[2],(PLOTPATH+"/photon_dr_clusMTD.pdf").c_str(),false);
-	SavePlot("dr among MTD hit and cluster for mct electrons",proj_full[3],(PLOTPATH+"/ele_dr_clusMTD.pdf").c_str(),false);
-	SavePlot("distance between real vertex and MTD_ECAL line",photon_vert_dr,(PLOTPATH+"/photon_vert_dr.pdf").c_str(),false);
+	proj_full[4]->GetXaxis()->SetTitle("dx");
+	proj_full[5]->GetXaxis()->SetTitle("dy");
+	proj_full[6]->GetXaxis()->SetTitle("dz");
 
 
-
-
-
-}
-
-
-float  matcher(float eta1,float phi1,std::vector<float>* eta2,std::vector <float>* phi2,std::vector <float>* x2,std::vector <float>* y2,std::vector <float>* z2,struct pos* pos, std::pair <float,float>* pair ){
-
-	int k;
-	float dr_min = 1e6;
-	std::cout << "in matcherrr" << std::endl;
-	for(k=0;k<phi2->size();k++){
-		float dr = sqrt(pow((eta1-eta2->at(k)),2)+pow((phi1-phi2->at(k)),2));
-		if(dr_min>dr){
-
-			dr_min=dr;
-			*pair= std::make_pair(eta1,phi1);			
-			(*pos).x= x2->at(k);
-			(*pos).y= y2->at(k);
-			(*pos).z= z2->at(k);
-			(*pos).phi= phi2->at(k);
-			(*pos).eta= eta2->at(k);
-	
-	std::cout << "dr_min" << dr_min << std::endl;
-		}
-
+	for(i=0;i<7;i++){
+	proj_full[i]->GetYaxis()->SetTitle("entries");
 	}
-
-
-	if(dr_min <100 )return dr_min;		
-	else return -1;
-
-
-
-}
-
-void SavePlot (char * titlestring, TH1D * histo, const char * filename, bool log=false){
-
-	TCanvas* canvas = new TCanvas(titlestring,titlestring,600,550);
-	if (log) canvas->SetLogy();
-	histo->Draw("hist");
-	canvas->SaveAs(filename);
-
-	canvas->Clear();
-}
-
-void Slicer(std::string PLOTPATH,int bin,float min, float max,std::string xaxis,TH2D *hist2D,std::string filename){
-
-	int i;
-	float x[bin],mean[bin],RMS[bin], *v=0;
-	TH1D * proj[bin];
-	for(i=0; i<bin;i++){
-		x[i]=min+(max-min)/bin*i;
-		char range[15];
-		int n;
-		n=sprintf(range,"_%.1f;%.1f_",x[i],x[i]+(max-min)/bin);
-		proj[i]=hist2D->ProjectionX(("nhits in"+std::string(range)+xaxis+"range").c_str(),i,i+1);
-		proj[i]->GetXaxis()->SetTitle(xaxis.c_str());
-		proj[i]->GetYaxis()->SetTitle("entries");
-		mean[i]=proj[i]->GetMean();
-		RMS[i]=proj[i]->GetMeanError();
-
-		SavePlot ("", proj[i],(PLOTPATH+"/controlplots/"+filename+std::string(range)+".pdf").c_str() ,false);
+/*	narrow_gaus->SetParLimits(0,proj_full[6]->GetMaximum()-50,1000000);
+	//narrow_gaus->SetParameter(0,proj_full[6]->GetMaximum());
+	narrow_gaus->SetParameter("Sigma",1);
+	narrow_gaus->SetParLimits(2,1,6);
+	wide_gaus->SetParameter("Sigma",3);
+	wide_gaus->SetParLimits(2,2,1000000);
+	wide_gaus->SetParLimits(0,0,60);
+	
+	proj_full[6]->Fit("narrowgaus","0R");
+	proj_full[6]->Fit("widegaus","0R");
+	narrow_gaus->GetParameters(&par[0]);
+	wide_gaus->GetParameters(&par[3]);
+	doublegaus_fit->SetParameters(par);
+	doublegaus_fit->SetParLimits(0,proj_full[6]->GetMaximum()-100,proj_full[6]->GetMaximum()+100);
+	proj_full[6]->Fit("doublegaus","0R");
+*/	
+	doublegaus_fit = N_gausFit(proj_full[6],2);
+	for (i=0;i<4;i++){
+	angular_fit[i]=N_gausFit(angular_dis[i],2);
+	angular_dis[i]->GetXaxis()->SetTitle(angular_dis[i]->GetName());
+	angular_dis[i]->GetYaxis()->SetTitle("entries");
+	SavePlot((char*)angular_dis[i]->GetName(),angular_dis[i],(PLOTPATH+"/"+ang_filename[i]).c_str(),false,angular_fit[i]);
+	
 
 
 	}
-	TGraphErrors* graph = new TGraphErrors(bin,x,mean,v,RMS);
-	TCanvas* canvas = new TCanvas("","",600,550);
-	canvas->Clear();
-	graph->GetXaxis()->SetTitle("pt(Gev/c)");
-	graph->GetYaxis()->SetTitle("mean dr");
-	graph->SetMarkerStyle(8);
-	graph->GetYaxis()->SetRangeUser(0,1);
-	graph->Draw("AP");
-	canvas->SaveAs((PLOTPATH+"/"+filename+".pdf").c_str());
-	delete canvas;
-	delete graph;
-	for(i=0;i<bin;i++){
-		delete proj[i];
-	}
-}
-
-float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, bool longitudinal = false){
-	float m1;
-	float c1,c2;
-	float x_int, y_int;
-	float dr=-1;
-	float x_v;
+//	SavePlot("Unconverted #gamma gen-cluster #Delta#eta",angular_dis[0],(PLOTPATH+"/gen_clus_pho_deta.pdf").c_str(),false,NULL);
+//	SavePlot("Unconverted #gamma gen cluster  #Delta#phi ",angular_dis[1],(PLOTPATH+"/gen_clus_pho_dphi.pdf").c_str(),false,NULL);
+//	SavePlot("Unconv #gamma gen-cluster geom #Delta#eta",angular_dis[2],(PLOTPATH+"/gen_clus_gpho_eta.pdf").c_str(),false,NULL);
+//	SavePlot("Unconv #gamma gen-cluster geom #Delta#phi",angular_dis[3],(PLOTPATH+"/gen_clus_gpho_phi.pdf").c_str(),false,NULL);
+	SavePlot("dr among matched mct photons and clusters",proj_full[0],(PLOTPATH+"/dr_photon_clus.pdf").c_str(),false,NULL);
+//	std::cout << "quiiii" << std::endl;
+	SavePlot("dr among matched mct electrons and clusters",proj_full[1],(PLOTPATH+"/dr_electron_clus.pdf").c_str(),false,NULL);
+	SavePlot("dr among MTD hit and cluster for mct photons",proj_full[2],(PLOTPATH+"/photon_dr_clusMTD.pdf").c_str(),false,NULL);
+	SavePlot("dr among MTD hit and cluster for mct electrons",proj_full[3],(PLOTPATH+"/ele_dr_clusMTD.pdf").c_str(),false,NULL);
+	SavePlot("dx between real vertex and MTD_ECAL line",proj_full[4],(PLOTPATH+"/photon_vert_dx.pdf").c_str(),false,NULL);
+	SavePlot("dx in 0, 0.02 dr interval",slices[0],(PLOTPATH+"/controlplots/photon_vert_proj.pdf").c_str(),false,NULL);
+//	SavePlot("dx for dr >0.02",slices[1],(PLOTPATH+"/controlplots/photon_vert_dx0.4.pdf").c_str(),false);
+	SavePlot("dy between real vertex and MTD_ECAL line",proj_full[5],(PLOTPATH+"/photon_vert_dy.pdf").c_str(),false,NULL);
+	SavePlot("dz between real vertex and MTD_ECAL line",proj_full[6],(PLOTPATH+"/photon_vert_dz.pdf").c_str(),false,doublegaus_fit);
+	SavePlot2D("dr vs dz",photon_vert_dz,(PLOTPATH+"/photon_vert_dz2.pdf").c_str(),false);
+//	proj_full[2]->Scale(1/proj_full[2]->Integral());	
+//	slices[0]->Scale(1/slices[0]->Integral());	
+	slices[0]->SetLineColor(kRed);
+	TCanvas* canvas = new TCanvas("","superposition",600,550);
+	proj_full[2]->DrawNormalized("hist");
+	slices[0]->DrawNormalized("histsame");
+	canvas->SaveAs((PLOTPATH+"/superpos.pdf").c_str());
 	
-	m1 = (y2-y1)/(x2-x1);
-	c1 = y1-m1*x1;
-	if(longitudinal) x_v = vert->z();
-	else x_v = vert->x();
-	c2= vert->y()+x_v/m1;
-	x_int = m1*(c2-c1)/(m1*m1+1);
-	y_int = c2-(c2-c1)/(m1*m1+1);
-	
-	std::cout << "m1" << m1 <<"__" <<  c1 << std::endl;
-	std::cout << "coord_x" << x1 <<"__" <<  x2 << std::endl;
-	std::cout << "coord_y" << y1 << "__"<< y2 << std::endl;
-	std::cout << "coord" << x_int << vert->x() << std::endl;
-	if((y1 >0 && m1*x1 >0) || (y1< 0 && m1*x1<0)){
-	if(longitudinal==true ){
-
-	dr = sqrt((y_int-vert->y())*(y_int-vert->y())+(x_int-vert->z())*(x_int-vert->z()));
-	std::cout << "dr " << dr << std::endl;
-	return dr ;
-
-	}else{
-
-	dr = sqrt((y_int-vert->y())*(y_int-vert->y())+(x_int-vert->x())*(x_int-vert->x()));
-	if(m1>10 && m1<30 )Plotter(x2,y2,x1,y1,vert,m1,c1);
-	std::cout << "dr " << dr << std::endl;
-	return dr ;
-
-	}		
-
-	}else return dr;
-
-
-}
-
-void Plotter(float ecal_x,float ecal_y, float mtd_x, float mtd_y, TVector3 * vert,float m1, float c1){
-	TEllipse * ECAL= new TEllipse(0,0,129,129);	
-	TEllipse * MTD= new TEllipse(0,0,117,117);	
-	TMarker * ECALpoint;
-	TMarker* MTDpoint;
-	TMarker* vertex;
-	TF1* MTD_ECAL;
-	ECALpoint= new TMarker(ecal_x,ecal_y,kCircle);
-	MTDpoint= new TMarker(mtd_x,mtd_y,kCircle);
-	vertex= new TMarker(vert->x(),vert->y(),kMultiply);
-	MTD_ECAL = new TF1("pointer","x*[0]+[1]",-120,120);
-	MTD_ECAL->SetParameter(0,m1);
-	MTD_ECAL->SetParameter(1,c1);	
-	TH2D * plotter = new TH2D("","",10,-140,140,10,-140,140);
-	TCanvas * vertex_plot = new TCanvas(".","trackplotter",600,550);
-	ECAL->SetLineColor(kGray+2);
-	ECAL->SetLineWidth(4);
-	MTD->SetLineColor(kGray+2);
-	MTD->SetLineWidth(4);
-	plotter->GetXaxis()->SetTitle("X(cm)");
-	plotter->GetYaxis()->SetTitle("Y(cm)");
-	plotter->Draw();
-	ECAL->Draw("same");
-	MTD->Draw("same");
-	vertex->Draw("same");
-	ECALpoint->Draw("same");
-	MTDpoint->Draw("same");
-	MTD_ECAL->Draw("same");
-	vertex_plot->SaveAs((" ~/CMSSW_10_4_0_mtd5_prova/plots/testAll_clusevents/VertexPointer/vertex_"+std::to_string(mtd_x)+".pdf").c_str());
 
 
 
 
 }
-void setStyle() {
 
-
-	// set the TStyle
-	TStyle* style = new TStyle("DrawBaseStyle", "");
-	style->SetCanvasColor(0);
-	style->SetPadColor(0);
-	style->SetFrameFillColor(0);
-	style->SetStatColor(0);
-	style->SetOptStat(0);
-	style->SetOptFit(0);
-	style->SetTitleFillColor(0);
-	style->SetCanvasBorderMode(0);
-	style->SetPadBorderMode(0);
-	style->SetFrameBorderMode(0);
-	style->SetPadBottomMargin(0.12);
-	style->SetPadLeftMargin(0.12);
-	style->cd();
-	// For the canvas:
-	style->SetCanvasBorderMode(0);
-	style->SetCanvasColor(kWhite);
-	style->SetCanvasDefH(600); //Height of canvas
-	style->SetCanvasDefW(600); //Width of canvas
-	style->SetCanvasDefX(0); //POsition on screen
-	style->SetCanvasDefY(0);
-	// For the Pad:
-	style->SetPadBorderMode(0);
-	style->SetPadColor(kWhite);
-	style->SetPadGridX(false);
-	style->SetPadGridY(false);
-	style->SetGridColor(0);
-	style->SetGridStyle(3);
-	style->SetGridWidth(1);
-	// For the frame:
-	style->SetFrameBorderMode(0);
-	style->SetFrameBorderSize(1);
-	style->SetFrameFillColor(0);
-	style->SetFrameFillStyle(0);
-	style->SetFrameLineColor(1);
-	style->SetFrameLineStyle(1);
-	style->SetFrameLineWidth(1);
-	// Margins:
-	style->SetPadTopMargin(0.10);
-	style->SetPadBottomMargin(0.14);//0.13);
-	style->SetPadLeftMargin(0.16);//0.16);
-	style->SetPadRightMargin(0.04);//0.02);
-	// For the Global title:
-	style->SetOptTitle(1);
-	style->SetTitleFont(42);
-	style->SetTitleColor(1);
-	style->SetTitleTextColor(1);
-	style->SetTitleFillColor(10);
-	style->SetTitleFontSize(0.05);
-	// For the axis titles:
-	style->SetTitleColor(1, "XYZ");
-	style->SetTitleFont(42, "XYZ");
-	style->SetTitleSize(0.05, "XYZ");
-	style->SetTitleXOffset(1.15);//0.9);
-	style->SetTitleYOffset(1.5); // => 1.15 if exponents
-	// For the axis labels:
-	style->SetLabelColor(1, "XYZ");
-	style->SetLabelFont(42, "XYZ");
-	style->SetLabelOffset(0.007, "XYZ");
-	style->SetLabelSize(0.045, "XYZ");
-	// For the axis:
-	style->SetAxisColor(1, "XYZ");
-	style->SetStripDecimals(kTRUE);
-	style->SetTickLength(0.03, "XYZ");
-	style->SetNdivisions(510, "XYZ");
-	style->SetPadTickX(1); // To get tick marks on the opposite side of the frame
-	style->SetPadTickY(1);
-	// for histograms:
-	style->SetHistLineColor(1);
-	// for the pallete
-	Double_t stops[5] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
-	Double_t red  [5] = { 0.00, 0.00, 0.87, 1.00, 0.51 };
-	Double_t green[5] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
-	Double_t blue [5] = { 0.51, 1.00, 0.12, 0.00, 0.00 };
-	TColor::CreateGradientColorTable(5, stops, red, green, blue, 100);
-	style->SetNumberContours(100);
-
-	style->cd();
-
-}
 
