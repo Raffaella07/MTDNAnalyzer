@@ -63,10 +63,10 @@ int main (int argc, char **argv){
 	mct.Init(mcttree);
 	cand.Init(candtree);
 	/*std::string outname = argv[2];
-	std::cout << outname << std::endl;
-	TTree* neutree = (TTree*)file->Get("neu_tree");
-	TTree* tracktree= (TTree*)file->Get("tracks_tree");
-*/
+	  std::cout << outname << std::endl;
+	  TTree* neutree = (TTree*)file->Get("neu_tree");
+	  TTree* tracktree= (TTree*)file->Get("tracks_tree");
+	  */
 	int i,j,k,neu_event,track_event, counter,temp,TotMatching=0;
 	std::vector <float>* particleId=0;
 	std::vector <float>*  pt=0, *eta=0,*phi=0;
@@ -82,30 +82,30 @@ int main (int argc, char **argv){
 	tracktree->SetBranchAddress("event",&track_event);
 	tracktree->GetEntry(23);
 	std::cout << "________________trackevent________________--" << track_event << std::endl; 
-	
+
 	candtree->SetBranchAddress("pt",&pt);
 	candtree->SetBranchAddress("eta",&eta);
-/*	neutree->SetBranchAddress("mct_ele1_pt",&ele1_pt);
-	neutree->SetBranchAddress("mct_ele2_pt",&ele2_pt);
-	neutree->SetBranchAddress("mct_ele1_phi",&ele1_phi);
-	neutree->SetBranchAddress("mct_ele2_phi",&ele2_phi);*/
-	mcttree->SetBranchAddress("nlegs",&nlegs);
-	mcttree->SetBranchAddress("convRadius",&convRadius);
-	mcttree->SetBranchAddress("event",&neu_event);
+	/*	neutree->SetBranchAddress("mct_ele1_pt",&ele1_pt);
+		neutree->SetBranchAddress("mct_ele2_pt",&ele2_pt);
+		neutree->SetBranchAddress("mct_ele1_phi",&ele1_phi);
+		neutree->SetBranchAddress("mct_ele2_phi",&ele2_phi);*/
+	//mcttree->SetBranchAddress("nlegs",&nlegs);
+//	mcttree->SetBranchAddress("convRadius",&convRadius);
+//	mcttree->SetBranchAddress("event",&neu_event);
 	candtree->SetBranchAddress("phi",&phi);
 	tracktree->SetBranchAddress("Track_pt",&Eventetracks.pt);
 	tracktree->SetBranchAddress("Track_In_phi",&Eventetracks.phi);
-	mcttree->SetBranchAddress("PId",&particleId);
+//	mcttree->SetBranchAddress("PId",&particleId);
 	tracktree->SetBranchAddress("Track_charge",&Eventetracks.q);
-//	neutree->SetBranchAddress("mct_eles_dr",&gen_DR);
-//	neutree->SetBranchAddress("ele1_match",&match_ele1);
-//	neutree->SetBranchAddress("ele2_match",&match_ele2);
+	//	neutree->SetBranchAddress("mct_eles_dr",&gen_DR);
+	//	neutree->SetBranchAddress("ele1_match",&match_ele1);
+	//	neutree->SetBranchAddress("ele2_match",&match_ele2);
 	tracktree->SetBranchAddress("Track_In_eta",&Eventetracks.eta);
 
-	
+
 	PLOTPATH=std::string(" ~/CMSSW_10_4_0_mtd5_prova/plots/"+outname+"events");
 	system (("mkdir "+ PLOTPATH).c_str());
-	
+
 	TH1F * histo_pt =new TH1F("photons pt","photons pt",20,0,11);
 	TH1F * histo_eta =new TH1F("photons eta","photons eta",30,-2,2);
 	TH1F * histo_rad =new TH1F("photons conversion radius tot","photons conversion radius(for unconv r=0)tot ",100,0,150);
@@ -114,116 +114,122 @@ int main (int argc, char **argv){
 	TH1F * histoconv_rad =new TH1F("photons conversion radius","photons conversion radius(for unconv r=0)",100,0,150);
 	TH1F * histocut_eta =new TH1F("mtd converted photons eta ","barrel (|#eta| < 1.4) mtd converted photons eta (1.10 m <R < 1.22 m)",30,-2,2);
 	TH1F * pt_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distribu ",10,0,10);
-//	TH1F * pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
+	//	TH1F * pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 	TH1F * cand_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distributions ",10,0,10);
-//	TH1F * cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
+	//	TH1F * cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 
 	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
 	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",10,0,10);
 	TH2F * tracker =new TH2F("tracker radiograpy","tracker radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
-//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
-		
+	//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
+
 	for(i=0;i<cand.fChain->GetEntries();i++){
 		cand.fChain->GetEntry(i);
 		mct.fChain->GetEntry(i);
 		track.fChain->GetEntry(i);
 		std::cout << "HEREEEEEE" << std::endl;	
-//		if (i==0) temp = event-1;
-				
-			std::cout << "neu EVENT____" << neu_event << std::endl;
-			for (j =0; j < pt->size(); j++){	
+		//		if (i==0) temp = event-1;
+
+		std::cout << "neu EVENT____" << neu_event << std::endl;
+		for (j =0; j < pt->size(); j++){	
 			//	if(particleId->at(j) ==4 ){}
-				histo_pt->Fill(pt->at(j));
-				histo_eta->Fill(eta->at(j));
-				std::cout << "label______" << cand.label->at(j) << std::endl;
-				if(cand.label->at(j)<10 && cand.label->at(j)>0){
-				histo_rad->Fill(convRadius->at(cand.label->at(j)));
-				if(nlegs->at(cand.label->at(j)) > 0){
-					histoconv_rad->Fill(convRadius->at(cand.label->at(j)));
-					if (eta->at(j) < 1.4  &&  eta->at(j) > -1.4){ 
-						if (convRadius->at(cand.label->at(j)) < 110 )
-							{
-							histoconv_pt->Fill(pt->at(j));
-							histoconv_eta->Fill(eta->at(j));
-						}
+			std::cout << "label______" << cand.label->at(j) << std::endl;
+			if(cand.label->at(j)<10 && cand.label->at(j)>0){
 
-						else if( (convRadius->at(cand.label->at(j)) > 110 && convRadius->at(cand.label->at(j)) < 140) )
-						{
-							histocut_eta->Fill(eta->at(j));
-						}
-
-						tracker->Fill(convRadius->at(cand.label->at(j))*cos(mct.phi->at(cand.label->at(j))),convRadius->at(cand.label->at(j))*sin(mct.phi->at(cand.label->at(j))));
-					}	
-				}
-				
 				std::cout << "inside if______"<< cand.label->at(j) <<  std::endl;
-				if (particleId->at(cand.label->at(j)) == 4) {
-				photon.pt = pt->at(j);
-				photon.eta = eta->at(j);
-				photon.phi = phi->at(j);
-				photon.nlegs = nlegs->at(cand.label->at(j));
-				photon.convRadius = convRadius->at(cand.label->at(j));
-			/*	photon.ele1.pt = ele1_pt->at(j);
-				photon.ele1.phi = ele1_phi->at(j);
-				photon.ele2.pt = ele2_pt->at(j);
-				photon.ele2.phi = ele2_phi->at(j);
-				*/
-				Eventphotons.push_back(photon);
-			}
-			else if (particleId->at(cand.label->at(j)) ==2 ){
-
-				electron.pt = pt->at(j);
-				electron.eta = eta->at(j);
-				electron.phi = phi->at(j);
-				electron.q = 1;
-				std::cout << "inside if______"<< convRadius->at(cand.label->at(j)) <<  std::endl;
-				/*if (match_ele1->at(j) ==1 || match_ele2->at(j) == 1){}*/ electron.IsFromConversion = true;
-				electron.vertex = convRadius->at(cand.label->at(j));
-				electron.mct_truth_pt=mct.pt->at(cand.label->at(j)) ;
-				Eventelectrons.push_back(electron);
-			}
-		}
-		//	if(DeltaElPhoton(etrack,mct_phi,particleId,10)>0){
-		//	mismatch++;
-		//	std::cout <<"Photon-Electron track deltaR @ ECAL" << DeltaElPhoton(etrack,mct_phi,particleId,10) << std::endl;
-
-		//	}
-		//
-		//		std::cout << "	" <<  mct_convRadius*cos(mct_phi) << "   #######" << std::endl;
-		//			
-	//	radius_DR->Fill(photon.convRadius, gen_DR);
-		}
-		for (j=0; j < Eventelectrons.size(); j++){
-		if (Eventelectrons[j].vertex < 100 && Eventelectrons[j].IsFromConversion == true ){
-		
-					 cand_ele->Fill(Eventelectrons[j].pt);
-					
-					pt_ele->Fill(Eventelectrons[j].mct_truth_pt);
+				if (mct.PId->at(cand.label->at(j)) == 4) {
+					photon.pt = pt->at(j);
+					photon.eta = eta->at(j);
+					photon.phi = phi->at(j);
+					photon.nlegs = mct.nlegs->at(cand.label->at(j));
+					photon.convRadius = mct.convRadius->at(cand.label->at(j));
+					/*	photon.ele1.pt = ele1_pt->at(j);
+						photon.ele1.phi = ele1_phi->at(j);
+						photon.ele2.pt = ele2_pt->at(j);
+						photon.ele2.phi = ele2_phi->at(j);
+						*/
+					Eventphotons.push_back(photon);
 				}
+				else if (mct.PId->at(cand.label->at(j)) ==2 ){
+
+					electron.pt = pt->at(j);
+					electron.eta = eta->at(j);
+					electron.phi = phi->at(j);
+					electron.q = 1;
+					std::cout << "inside if______"<< mct.convRadius->at(cand.label->at(j)) <<  std::endl;
+					/*if (match_ele1->at(j) ==1 || match_ele2->at(j) == 1){}*/ electron.IsFromConversion = true;
+					electron.vertex = mct.convRadius->at(cand.label->at(j));
+					electron.mct_truth_pt=mct.pt->at(cand.label->at(j)) ;
+					Eventelectrons.push_back(electron);
+				}
+			}
+			//	if(DeltaElPhoton(etrack,mct_phi,particleId,10)>0){
+			//	mismatch++;
+			//	std::cout <<"Photon-Electron track deltaR @ ECAL" << DeltaElPhoton(etrack,mct_phi,particleId,10) << std::endl;
+
+			//	}
+			//
+			//		std::cout << "	" <<  mct_convRadius*cos(mct_phi) << "   #######" << std::endl;
+			//			
+			//	radius_DR->Fill(photon.convRadius, gen_DR);
 		}
-		
-	
 
-/*			for(k=0; k <tracktree->GetEntries(); k++ ){
-				tracktree->GetEntry(k);		
-				if (track_event == neu_event){ 	Eventetracks.push_back(etrack);		
-			}*/
+		std::cout << "inside for k ______" <<  mct.convRadius->size() << std::endl;
+		for(k=0;k<mct.convRadius->size();k++){
 			
-	/*		else if (particleId = -3){
-		
-				Eventetracks.push_back(etrack);				
+			histo_pt->Fill(mct.pt->at(k));
+			histo_eta->Fill(mct.eta->at(k));
+			histo_rad->Fill(mct.convRadius->at(k));
+					if(mct.nlegs->at(k) > 0){
+					histoconv_rad->Fill(mct.convRadius->at(k));
+					if (mct.eta->at(k) < 1.4  &&  mct.eta->at(k) > -1.4){ 
+					if (mct.convRadius->at(k) < 110 )
+					{
+					histoconv_pt->Fill(mct.pt->at(k));
+					histoconv_eta->Fill(mct.eta->at(k));
+					}
 
-			}*/
-		
-	//	}
-		if (pt->size() < 4 ) TotMatching += TracksMatching(Eventetracks,Eventelectrons,0.3,PLOTPATH,matched_t,matched_e);
-		
-		Eventphotons.clear();
-		Eventelectrons.clear();
-		Eventetracks.pt->clear();
-		Eventetracks.phi->clear();
-		Eventetracks.eta->clear();
-		Eventetracks.q->clear();
+					else if( (mct.convRadius->at(k) > 114 && mct.convRadius->at(k) < 118) )
+					{
+					histocut_eta->Fill(mct.eta->at(k));
+			////		histocut_pt>Fill(pt->at(k));
+					}
+
+					tracker->Fill(mct.convRadius->at(k)*cos(mct.phi->at(k)),mct.convRadius->at(k)*sin(mct.phi->at(k)));
+							}	
+							}
+							}
+							for (j=0; j < Eventelectrons.size(); j++){
+							if (Eventelectrons[j].vertex < 100 && Eventelectrons[j].IsFromConversion == true ){
+
+							cand_ele->Fill(Eventelectrons[j].pt);
+
+							pt_ele->Fill(Eventelectrons[j].mct_truth_pt);
+							}
+							}
+
+
+
+							/*			for(k=0; k <tracktree->GetEntries(); k++ ){
+										tracktree->GetEntry(k);		
+										if (track_event == neu_event){ 	Eventetracks.push_back(etrack);		
+										}*/
+
+							/*		else if (particleId = -3){
+
+									Eventetracks.push_back(etrack);				
+
+									}*/
+
+							//	}
+							if (pt->size() < 4 ) TotMatching += TracksMatching(Eventetracks,Eventelectrons,0.3,PLOTPATH,matched_t,matched_e);
+
+							Eventphotons.clear();
+							Eventelectrons.clear();
+							Eventetracks.pt->clear();
+							Eventetracks.phi->clear();
+							Eventetracks.eta->clear();
+							Eventetracks.q->clear();
 	}
 	std::cout << "Number of converted photons matched to tracks" << TotMatching << std::endl;
 	histoconv_pt->GetXaxis()->SetTitle("pt(Gev/c)");
@@ -243,7 +249,7 @@ int main (int argc, char **argv){
 	SavePlot("Converted ph per eta", histoconv_eta,(PLOTPATH+"/DumbHistoCheck/c_eta.pdf").c_str(),false);
 	SavePlot("photons  per convradius", histo_rad,(PLOTPATH+"/DumbHistoCheck/_rad.pdf").c_str(),false);
 	SavePlot("Converted ph per converted radius", histoconv_rad,(PLOTPATH+"/DumbHistoCheck/c_rad.pdf").c_str(),false);
-	
+
 	histoconv_pt->Divide(histo_pt);
 	histoconv_eta->Divide(histo_eta);
 	histocut_eta->Divide(histo_eta);
@@ -293,8 +299,8 @@ int main (int argc, char **argv){
 	tracker->GetYaxis()->SetTitle("Y (cm)");
 	tracker->Draw();
 	phototrack->SaveAs((PLOTPATH+"/phototracker.pdf").c_str());
-	
-	 	
+
+
 	delete 	histo_pt;
 	delete 	histo_eta;
 	delete 	histo_rad;
@@ -305,17 +311,17 @@ int main (int argc, char **argv){
 	delete 	pt_ele;
 	delete matched_t;
 	delete matched_e;	
-//	pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
+	//	pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 	delete cand_ele;
-//	cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
+	//	cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 
 	delete tracker; // radius in cm?
-//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
-/*	TCanvas * rad_DR  =new TCanvas("radius dr corr"," radius dr corr", 650,550); 
-	radius_DR->GetXaxis()->SetTitle("convRadius (cm)");
-	radius_DR->GetYaxis()->SetTitle("gen_DR ");
-	radius_DR->Draw("COLZ");
-	rad_DR->SaveAs((PLOTPATH+"/RAD_DR.pdf").c_str());*/
+	//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
+	/*	TCanvas * rad_DR  =new TCanvas("radius dr corr"," radius dr corr", 650,550); 
+		radius_DR->GetXaxis()->SetTitle("convRadius (cm)");
+		radius_DR->GetYaxis()->SetTitle("gen_DR ");
+		radius_DR->Draw("COLZ");
+		rad_DR->SaveAs((PLOTPATH+"/RAD_DR.pdf").c_str());*/
 }
 
 void SavePlot (char * titlestring, TH1F * histo, const char * filename, bool log=false){
@@ -379,22 +385,22 @@ TGraph* rad_lenght(TH1F* hist){
 }
 
 float TracksMatching(struct track tracks, std::vector<struct ele> electrons ,  float deltaRmax,std::string PLOTPATH,TH1F* matched_t,TH1F* matched_e){
-//	float radius =  129;
+	//	float radius =  129;
 	int match=0;
-//	float cand_X,cand_Y, e_X, e_Y;
+	//	float cand_X,cand_Y, e_X, e_Y;
 	int i,j;
-	
-	
-	
+
+
+
 	std::cout << "_____nphotons______ntracks_______" << electrons.size() << "________________" <<tracks.pt->size() << std::endl;
 	for(i=0; i<electrons.size();i++){
 		for(j=0; j < tracks.pt->size();j++){
 			std:: cout << "track pt____________" << tracks.pt->at(j) << std::endl;
 			if(electrons[i].vertex < 100 && electrons[j].IsFromConversion== true){
-			//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).first;
-			//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).second;
-			//	e_X = ElectronProp(0,0,tracks[j].phi).first;
-			//	e_Y = ElectronProp(0,0,tracks[j].phi).second;
+				//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).first;
+				//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).second;
+				//	e_X = ElectronProp(0,0,tracks[j].phi).first;
+				//	e_Y = ElectronProp(0,0,tracks[j].phi).second;
 				float deltaR = sqrt(pow((electrons[i].phi-tracks.phi->at(j)),2)+pow((electrons[i].eta-tracks.eta->at(j)),2));
 				std::cout << "DeltaR = " << deltaR << std::endl;
 				if (deltaR < deltaRmax) {
@@ -406,60 +412,60 @@ float TracksMatching(struct track tracks, std::vector<struct ele> electrons ,  f
 				}
 
 
-		}	
+			}	
 		}
 	}
-	
-	
+
+
 	if (match > 0) return match;
 	else return 0;
 }
 /*float TracksMatching(std::vector<struct track> tracks, std::vector<struct pho> photons ,  float deltaRmax,std::string PLOTPATH){
 //	float radius =  129;
-	int match=0;
+int match=0;
 //	float cand_X,cand_Y, e_X, e_Y;
-	int i,j;
-	
-	TH1F * matched_e1 =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
-	TH1F * matched_e2 =new TH1F("pt of matched tracke to electron2 from conv ","pt of matched tracks to  generated electron2 from conv ",10,0,10);
-	
-	std::cout << "_____nphotons______ntracks_______" << photons.size() << "________________" <<tracks.size() << std::endl;
-	for(i=0; i<photons.size();i++){
-		for(j=0; j < tracks.size();j++){
-			std:: cout << "track pt____________" << tracks[j].pt << std::endl;
-			//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).first;
-			//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).second;
-			//	e_X = ElectronProp(0,0,tracks[j].phi).first;
-			//	e_Y = ElectronProp(0,0,tracks[j].phi).second;
-				float deltaR = sqrt(pow((photons[i].ele1.phi-tracks[j].phi),2)+pow((photons[i].ele1.eta-tracks[j].eta),2));
-				std::cout << "DeltaR = " << deltaR << std::endl;
-				if (deltaR < deltaRmax) {
-					match ++;
-					std::cout << "converted electron-track matching succeded"<<std::endl;
-					std::cout << "DeltaR = " << deltaR << std::endl;
-					matched_e1->Fill(tracks[j].pt);
-				}
-				else {
+int i,j;
 
-				//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele2.phi).first;
-				//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele2.phi).second;
+TH1F * matched_e1 =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
+TH1F * matched_e2 =new TH1F("pt of matched tracke to electron2 from conv ","pt of matched tracks to  generated electron2 from conv ",10,0,10);
 
-				float deltaR = sqrt(pow((photons[i].ele1.phi-tracks[j].phi),2)+pow((photons[i].ele1.eta-tracks[j].eta),2));
-					if (deltaR < deltaRmax) {
-						match ++;
-						std::cout << "converted electron-track matching succeded"<<std::endl;
-						std::cout << "DeltaR = " << deltaR << std::endl;
-						matched_e2->Fill(tracks[j].pt);
-					}					
-				}
+std::cout << "_____nphotons______ntracks_______" << photons.size() << "________________" <<tracks.size() << std::endl;
+for(i=0; i<photons.size();i++){
+for(j=0; j < tracks.size();j++){
+std:: cout << "track pt____________" << tracks[j].pt << std::endl;
+//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).first;
+//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele1.phi).second;
+//	e_X = ElectronProp(0,0,tracks[j].phi).first;
+//	e_Y = ElectronProp(0,0,tracks[j].phi).second;
+float deltaR = sqrt(pow((photons[i].ele1.phi-tracks[j].phi),2)+pow((photons[i].ele1.eta-tracks[j].eta),2));
+std::cout << "DeltaR = " << deltaR << std::endl;
+if (deltaR < deltaRmax) {
+match ++;
+std::cout << "converted electron-track matching succeded"<<std::endl;
+std::cout << "DeltaR = " << deltaR << std::endl;
+matched_e1->Fill(tracks[j].pt);
+}
+else {
+
+//	cand_X = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele2.phi).first;
+//	cand_Y = ElectronProp(photons[i].convRadius,photons[i].phi,photons[i].ele2.phi).second;
+
+float deltaR = sqrt(pow((photons[i].ele1.phi-tracks[j].phi),2)+pow((photons[i].ele1.eta-tracks[j].eta),2));
+if (deltaR < deltaRmax) {
+match ++;
+std::cout << "converted electron-track matching succeded"<<std::endl;
+std::cout << "DeltaR = " << deltaR << std::endl;
+matched_e2->Fill(tracks[j].pt);
+}					
+}
 
 
-			
-		}
-	}
-	
-	SavePlot("matched 1  tracks pt  distribution ", matched_e1,(PLOTPATH+"/tracks_ele1_pt.pdf").c_str(),true);
-	SavePlot("matched  2 tracks pt distribution ", matched_e2,(PLOTPATH+"/tracks_ele2_pt.pdf").c_str(),true);
-	if (match > 0) return match;
-	else return 0;
+
+}
+}
+
+SavePlot("matched 1  tracks pt  distribution ", matched_e1,(PLOTPATH+"/tracks_ele1_pt.pdf").c_str(),true);
+SavePlot("matched  2 tracks pt distribution ", matched_e2,(PLOTPATH+"/tracks_ele2_pt.pdf").c_str(),true);
+if (match > 0) return match;
+else return 0;
 }*/
