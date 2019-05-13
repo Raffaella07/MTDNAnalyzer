@@ -119,16 +119,16 @@ void Slicer(std::string PLOTPATH,int bin,float min, float max,std::string xaxis,
 	TH1D * proj[bin];
 	for(i=0; i<bin;i++){
 		x[i]=min +(max-min)/bin*i;
-		char range[15];
+		char range[15]="";
 		int n;
-		n=sprintf(range,"_%.3f;%.3f_",x[i],x[i]+(max-min)/bin);
-		proj[i]=hist2D->ProjectionX(("nhits in"+std::string(range)+xaxis+"range").c_str(),i,i+1);
+		n=sprintf(range,"%.3f;%.3f",x[i],x[i]+(max-min)/bin);
+		proj[i]=hist2D->ProjectionX(("nhits in"+std::to_string(i)+"range").c_str(),i,i+1);
 		proj[i]->GetXaxis()->SetTitle(xaxis.c_str());
 		proj[i]->GetYaxis()->SetTitle("entries");
 		mean[i]=proj[i]->GetMean();
 		RMS[i]=proj[i]->GetMeanError();
 
-		SavePlot ("", proj[i],(PLOTPATH+"/controlplots/"+filename+std::string(range)+".pdf").c_str() ,false);
+		SavePlot ("", proj[i],(PLOTPATH+"/controlplots/"+filename+std::string(range)+"_.pdf").c_str() ,false);
 
 
 	}
@@ -246,7 +246,7 @@ TF1* fitgaus(TH1D* hist){
 	fit->SetParLimits(0,hist->GetMaximum()-50,hist->GetMaximum()+50);
 	fit->SetParameter(1,hist->GetMean());
 	fit->SetParameter(2,hist->GetRMS());
-	hist->Fit("gaus","R0");
+	hist->Fit("gaus","R0EM");
 	return fit;
 
 
@@ -272,22 +272,22 @@ TF1* N_gausFit(TH1D* hist, int n_gaus){
 		fits[i]->SetParameter(0,hist->GetMaximum());
 		fits[i]->SetParameter(1,hist->GetMean());
 		fits[i]->SetParameter(2,hist->GetRMS());
-		if(i==0)fits[i]->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/5,hist->GetMaximum()+(int)hist->GetMaximum()/5);
+		if(i==0)fits[i]->SetParLimits(0,hist->GetMaximum()-3,hist->GetMaximum()+(int)hist->GetMaximum()/7);
 		else fits[i]->SetParLimits(0,0,hist->GetMaximum()/2);
 		std::cout << "___" << i << "___fit name___" << fits[i]->GetName() << std::endl; 
-		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0R");
+		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0REM");
 		fits[i]->GetParameters(&par[i*3]);
 		global_formula+="gaus("+std::to_string(i*3)+")";
 		if(i != n_gaus-1) global_formula+="+";
 	}	
-	global_fit= new TF1("global_fit",(global_formula).c_str(),min_range,max_range);
+	global_fit= new TF1("global_fit",(global_formula).c_str(),min_range+5*hist->GetBinWidth(1),max_range-3*hist->GetBinWidth(1));
 	global_fit->SetParameters(par);
 	for(i=0;i<n_gaus*3;i++){
 	if(i%3 != 1)	global_fit->SetParLimits(i,0,1000);
 
 	}
-	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/5,hist->GetMaximum()+(int)hist->GetMaximum()/5);
-	hist->Fit("global_fit","0R");
+	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/10,hist->GetMaximum()+(int)hist->GetMaximum()/10);
+	hist->Fit("global_fit","0REM");
 	return global_fit;
 
 

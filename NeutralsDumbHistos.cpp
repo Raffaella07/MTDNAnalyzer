@@ -6,10 +6,21 @@
 #include <utility>  
 #include <iostream>
 #include <vector>
+#include <math.h>
 #include "TH2.h"
 #include <string>
 #include "TString.h"
+#include "TEllipse.h"
+#include "TArrow.h"
+#include "TStyle.h"
+#include "TMarker.h"
+#include "TText.h"
+#include "TF1.h"
+#include "TLorentzVector.h"
+#include "TVector3.h"
+#include "TGraphErrors.h"
 #include "TGraph.h"
+#include "TPaveText.h"
 #include "TLegend.h"
 #include "NeutralsClass.h"
 #include "NeutralsClass.cpp"
@@ -44,6 +55,7 @@ struct pho {
 void SavePlot (char *, TH1F *, const char *, bool);
 void MaterialBudget(TH1F*,TH1F*,std::string );
 float TracksMatching(struct track,std::vector<struct ele> ,float, std::string,TH1F*,TH1F*);
+void setStyle();
 
 TGraph* rad_lenght(TH1F* hist);
 
@@ -67,6 +79,8 @@ int main (int argc, char **argv){
 	  TTree* neutree = (TTree*)file->Get("neu_tree");
 	  TTree* tracktree= (TTree*)file->Get("tracks_tree");
 	  */
+
+	setStyle();
 	int i,j,k,neu_event,track_event, counter,temp,TotMatching=0;
 	std::vector <float>* particleId=0;
 	std::vector <float>*  pt=0, *eta=0,*phi=0;
@@ -90,12 +104,12 @@ int main (int argc, char **argv){
 		neutree->SetBranchAddress("mct_ele1_phi",&ele1_phi);
 		neutree->SetBranchAddress("mct_ele2_phi",&ele2_phi);*/
 	//mcttree->SetBranchAddress("nlegs",&nlegs);
-//	mcttree->SetBranchAddress("convRadius",&convRadius);
-//	mcttree->SetBranchAddress("event",&neu_event);
+	//	mcttree->SetBranchAddress("convRadius",&convRadius);
+	//	mcttree->SetBranchAddress("event",&neu_event);
 	candtree->SetBranchAddress("phi",&phi);
 	tracktree->SetBranchAddress("Track_pt",&Eventetracks.pt);
 	tracktree->SetBranchAddress("Track_In_phi",&Eventetracks.phi);
-//	mcttree->SetBranchAddress("PId",&particleId);
+	//	mcttree->SetBranchAddress("PId",&particleId);
 	tracktree->SetBranchAddress("Track_charge",&Eventetracks.q);
 	//	neutree->SetBranchAddress("mct_eles_dr",&gen_DR);
 	//	neutree->SetBranchAddress("ele1_match",&match_ele1);
@@ -106,26 +120,27 @@ int main (int argc, char **argv){
 	PLOTPATH=std::string(" ~/CMSSW_10_4_0_mtd5_prova/plots/"+outname+"events");
 	system (("mkdir "+ PLOTPATH).c_str());
 
-	TH1F * histo_pt =new TH1F("photons pt","photons pt",20,0,11);
+	TH1F * histo_pt =new TH1F("photons pt","photons pt",60,0,60);
 	TH1F * histo_eta =new TH1F("photons eta","photons eta",30,-2,2);
 	TH1F * histo_rad =new TH1F("photons conversion radius tot","photons conversion radius(for unconv r=0)tot ",100,0,150);
-	TH1F * histoconv_pt =new TH1F(" converted photons pt ","barrel (|#eta| < 1.4) conv photons pt (R < 1.20 m)",20,0,11);
+	TH1F * histoconv_pt =new TH1F(" converted photons pt ","barrel (|#eta| < 1.4) conv photons pt (R < 1.20 m)",60,0,60);
 	TH1F * histoconv_eta =new TH1F("converted photons eta ","barrel (|#eta| < 1.4) convertes photons eta (R < 1.10 m)",30,-2,2);
 	TH1F * histoconv_rad =new TH1F("photons conversion radius","photons conversion radius(for unconv r=0)",100,0,150);
 	TH1F * histocut_eta =new TH1F("mtd converted photons eta ","barrel (|#eta| < 1.4) mtd converted photons eta (1.10 m <R < 1.22 m)",30,-2,2);
-	TH1F * pt_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distribu ",10,0,10);
+	TH1F * pt_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distribu ",50,0,60);
 	//	TH1F * pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
-	TH1F * cand_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distributions ",10,0,10);
+	TH1F * cand_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distributions ",50,0,60);
 	//	TH1F * cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 
-	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
-	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",10,0,10);
+	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",50,0,60);
+	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",50,0,60);
 	TH2F * tracker =new TH2F("tracker radiograpy","tracker radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
 	//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
 
 	for(i=0;i<cand.fChain->GetEntries();i++){
 		cand.fChain->GetEntry(i);
 		mct.fChain->GetEntry(i);
+		gen.fChain->GetEntry(i);
 		track.fChain->GetEntry(i);
 		std::cout << "HEREEEEEE" << std::endl;	
 		//		if (i==0) temp = event-1;
@@ -136,7 +151,7 @@ int main (int argc, char **argv){
 			std::cout << "label______" << cand.label->at(j) << std::endl;
 			if(cand.label->at(j)<10 && cand.label->at(j)>0){
 
-				std::cout << "inside if______"<< cand.label->at(j) <<  std::endl;
+				std::cout << "inside if___labels__________________________________"<< mct.PId->at(cand.label->at(j)) <<  std::endl;
 				if (mct.PId->at(cand.label->at(j)) == 4) {
 					photon.pt = pt->at(j);
 					photon.eta = eta->at(j);
@@ -156,7 +171,7 @@ int main (int argc, char **argv){
 					electron.eta = eta->at(j);
 					electron.phi = phi->at(j);
 					electron.q = 1;
-					std::cout << "inside if______"<< mct.convRadius->at(cand.label->at(j)) <<  std::endl;
+					std::cout << "inside if______"<< mct.PId->at(cand.label->at(j)) <<  std::endl;
 					/*if (match_ele1->at(j) ==1 || match_ele2->at(j) == 1){}*/ electron.IsFromConversion = true;
 					electron.vertex = mct.convRadius->at(cand.label->at(j));
 					electron.mct_truth_pt=mct.pt->at(cand.label->at(j)) ;
@@ -175,61 +190,61 @@ int main (int argc, char **argv){
 		}
 
 		std::cout << "inside for k ______" <<  mct.convRadius->size() << std::endl;
-		for(k=0;k<mct.convRadius->size();k++){
-			
-			histo_pt->Fill(mct.pt->at(k));
-			histo_eta->Fill(mct.eta->at(k));
-			histo_rad->Fill(mct.convRadius->at(k));
-					if(mct.nlegs->at(k) > 0){
-					histoconv_rad->Fill(mct.convRadius->at(k));
-					if (mct.eta->at(k) < 1.4  &&  mct.eta->at(k) > -1.4){ 
-					if (mct.convRadius->at(k) < 110 )
-					{
-					histoconv_pt->Fill(mct.pt->at(k));
-					histoconv_eta->Fill(mct.eta->at(k));
-					}
+		for(k=0;k<gen.convRadius->size();k++){
+				
+				histo_pt->Fill(gen.pt->at(k));
+				histo_eta->Fill(gen.eta->at(k));
+				histo_rad->Fill(gen.convRadius->at(k));
+					if (gen.eta->at(k) < 1.4  &&  gen.eta->at(k) > -1.4){ 
+						if (gen.convRadius->at(k) < 110 )
+						{
+							histoconv_pt->Fill(gen.pt->at(k));
+							histoconv_eta->Fill(gen.eta->at(k));
+							histoconv_rad->Fill(gen.convRadius->at(k));
+						}
 
-					else if( (mct.convRadius->at(k) > 114 && mct.convRadius->at(k) < 118) )
-					{
-					histocut_eta->Fill(mct.eta->at(k));
-			////		histocut_pt>Fill(pt->at(k));
-					}
+						else if( (gen.convRadius->at(k) > 114 && gen.convRadius->at(k) < 118) )
+						{
+							histocut_eta->Fill(gen.eta->at(k));
+							////		histocut_pt>Fill(pt->at(k));
+						}
 
-					tracker->Fill(mct.convRadius->at(k)*cos(mct.phi->at(k)),mct.convRadius->at(k)*sin(mct.phi->at(k)));
-							}	
-							}
-							}
-							for (j=0; j < Eventelectrons.size(); j++){
-							if (Eventelectrons[j].vertex < 100 && Eventelectrons[j].IsFromConversion == true ){
+						tracker->Fill(gen.convRadius->at(k)*cos(gen.phi->at(k)),gen.convRadius->at(k)*sin(gen.phi->at(k)));
+					}	
+				
+			}
+		
+		for (j=0; j < Eventelectrons.size(); j++){
+			if (Eventelectrons[j].vertex < 100 && Eventelectrons[j].IsFromConversion == true ){
 
-							cand_ele->Fill(Eventelectrons[j].pt);
+				cand_ele->Fill(Eventelectrons[j].pt);
 
-							pt_ele->Fill(Eventelectrons[j].mct_truth_pt);
-							}
-							}
+				pt_ele->Fill(Eventelectrons[j].mct_truth_pt);
+			}
+		}
 
 
 
-							/*			for(k=0; k <tracktree->GetEntries(); k++ ){
-										tracktree->GetEntry(k);		
-										if (track_event == neu_event){ 	Eventetracks.push_back(etrack);		
-										}*/
+		/*			for(k=0; k <tracktree->GetEntries(); k++ ){
+					tracktree->GetEntry(k);		
+					if (track_event == neu_event){ 	Eventetracks.push_back(etrack);		
+					}*/
 
-							/*		else if (particleId = -3){
+		/*		else if (particleId = -3){
 
-									Eventetracks.push_back(etrack);				
+				Eventetracks.push_back(etrack);				
 
-									}*/
+				}*/
 
-							//	}
-							if (pt->size() < 4 ) TotMatching += TracksMatching(Eventetracks,Eventelectrons,0.3,PLOTPATH,matched_t,matched_e);
+		//	}
+		if (pt->size() < 4 ) TotMatching += TracksMatching(Eventetracks,Eventelectrons,0.3,PLOTPATH,matched_t,matched_e);
 
-							Eventphotons.clear();
-							Eventelectrons.clear();
-							Eventetracks.pt->clear();
-							Eventetracks.phi->clear();
-							Eventetracks.eta->clear();
-							Eventetracks.q->clear();
+		Eventphotons.clear();
+		Eventelectrons.clear();
+		Eventetracks.pt->clear();
+		Eventetracks.phi->clear();
+		Eventetracks.eta->clear();
+		Eventetracks.q->clear();
 	}
 	std::cout << "Number of converted photons matched to tracks" << TotMatching << std::endl;
 	histoconv_pt->GetXaxis()->SetTitle("pt(Gev/c)");
@@ -273,8 +288,8 @@ int main (int argc, char **argv){
 	pt_ele->GetYaxis()->SetTitle("N");
 	pt_ele->SetLineColor(kBlue);
 	cand_ele->SetLineColor(kRed);
-	cand_ele->Draw();
-	pt_ele->Draw("same");
+	cand_ele->DrawNormalized();
+	pt_ele->DrawNormalized("same");
 	TLegend * legend1 = new TLegend();
 	legend1->AddEntry(pt_ele,"generated electrons","l");
 	legend1->AddEntry(cand_ele,"candidate electrons","l");
@@ -351,7 +366,7 @@ void MaterialBudget(TH1F* hist1,TH1F* hist2, std::string PATH ){
 	mtd_budget->Draw("ALP");
 	tracker_budget->Draw("LP");
 
-	TLegend * budget_legend = new TLegend();
+	TLegend * budget_legend = new TLegend(0.35,0.8,0.65,0.9);
 	budget_legend->AddEntry(tracker_budget, "tracker (R < 1.10 m) ", "l");
 	budget_legend->AddEntry(mtd_budget, "mtd (1.10 m < R < 1.20 m) ", "l");
 	//	std::cout << "_______________HERE____________" << std::endl;
@@ -420,6 +435,91 @@ float TracksMatching(struct track tracks, std::vector<struct ele> electrons ,  f
 	if (match > 0) return match;
 	else return 0;
 }
+void setStyle() {
+
+
+	// set the TStyle
+	TStyle* style = new TStyle("DrawBaseStyle", "");
+	style->SetCanvasColor(0);
+	style->SetPadColor(0);
+	style->SetFrameFillColor(0);
+	style->SetStatColor(0);
+	style->SetOptStat(0);
+	style->SetOptFit(0);
+	style->SetTitleFillColor(0);
+	style->SetCanvasBorderMode(0);
+	style->SetPadBorderMode(0);
+	style->SetFrameBorderMode(0);
+	style->SetPadBottomMargin(0.12);
+	style->SetPadLeftMargin(0.12);
+	style->cd();
+	// For the canvas:
+	style->SetCanvasBorderMode(0);
+	style->SetCanvasColor(kWhite);
+	style->SetCanvasDefH(600); //Height of canvas
+	style->SetCanvasDefW(600); //Width of canvas
+	style->SetCanvasDefX(0); //POsition on screen
+	style->SetCanvasDefY(0);
+	// For the Pad:
+	style->SetPadBorderMode(0);
+	style->SetPadColor(kWhite);
+	style->SetPadGridX(false);
+	style->SetPadGridY(false);
+	style->SetGridColor(0);
+	style->SetGridStyle(3);
+	style->SetGridWidth(1);
+	// For the frame:
+	style->SetFrameBorderMode(0);
+	style->SetFrameBorderSize(1);
+	style->SetFrameFillColor(0);
+	style->SetFrameFillStyle(0);
+	style->SetFrameLineColor(1);
+	style->SetFrameLineStyle(1);
+	style->SetFrameLineWidth(1);
+	// Margins:
+	style->SetPadTopMargin(0.10);
+	style->SetPadBottomMargin(0.14);//0.13);
+	style->SetPadLeftMargin(0.16);//0.16);
+	style->SetPadRightMargin(0.1);//0.02);
+	// For the Global title:
+	style->SetOptTitle(0);
+	style->SetTitleFont(42);
+	style->SetTitleColor(1);
+	style->SetTitleTextColor(1);
+	style->SetTitleFillColor(10);
+	style->SetTitleFontSize(0.05);
+	// For the axis titles:
+	style->SetTitleColor(1, "XYZ");
+	style->SetTitleFont(42, "XYZ");
+	style->SetTitleSize(0.05, "XYZ");
+	style->SetTitleXOffset(1.15);//0.9);
+	style->SetTitleYOffset(1.5); // => 1.15 if exponents
+	// For the axis labels:
+	style->SetLabelColor(1, "XYZ");
+	style->SetLabelFont(42, "XYZ");
+	style->SetLabelOffset(0.007, "XYZ");
+	style->SetLabelSize(0.045, "XYZ");
+	// For the axis:
+	style->SetAxisColor(1, "XYZ");
+	style->SetStripDecimals(kTRUE);
+	style->SetTickLength(0.03, "XYZ");
+	style->SetNdivisions(510, "XYZ");
+	style->SetPadTickX(1); // To get tick marks on the opposite side of the frame
+	style->SetPadTickY(1);
+	// for histograms:
+	style->SetHistLineColor(1);
+	// for the pallete
+	Double_t stops[5] = { 0.00, 0.34, 0.61, 0.84, 1.00 };
+	Double_t red  [5] = { 0.00, 0.00, 0.87, 1.00, 0.51 };
+	Double_t green[5] = { 0.00, 0.81, 1.00, 0.20, 0.00 };
+	Double_t blue [5] = { 0.51, 1.00, 0.12, 0.00, 0.00 };
+	TColor::CreateGradientColorTable(5, stops, red, green, blue, 100);
+	style->SetNumberContours(100);
+
+	style->cd();
+
+}
+
 /*float TracksMatching(std::vector<struct track> tracks, std::vector<struct pho> photons ,  float deltaRmax,std::string PLOTPATH){
 //	float radius =  129;
 int match=0;

@@ -62,11 +62,11 @@ int main(int argc, char **argv){
 	setStyle();
 	//--set bin numbers and ranges
 	bin_dr=50;
-	bin_pt=15;
+	bin_pt=10;
 	dr_min=0;
 	dr_max=0.4;
-	pt_min=0;
-	pt_max=10;
+	pt_min=50;
+	pt_max=60;
 	bin_eta=10;
 	eta_min=0;
 	eta_max=3;
@@ -100,7 +100,7 @@ int main(int argc, char **argv){
 	TH2D* ele_dr_clusMTD = new TH2D("","dr among clusters and Mtd hit for mct electrons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* photon_vert_dx = new TH2D("","dx of the real vertex wrt to the ECAL_MTD line",10,-15,15,50,0.0,0.4);
 	TH2D* photon_vert_dy = new TH2D("","dy of the real vertex wrt to the ECAL_MTD line",35,-15,15,2,0,0.5);
-	TH2D* photon_vert_dz = new TH2D("","dz of the real vertex wrt to the ECAL_MTD line",45,-25,25,bin_eta,eta_min,eta_max);
+	TH2D* photon_vert_dz = new TH2D("","dz of the real vertex wrt to the ECAL_MTD line",45,-15,15,bin_pt,pt_min,pt_max);
 
 
 
@@ -161,6 +161,7 @@ int main(int argc, char **argv){
 						photon_vert_dx->Fill(dx,dr);
 						photon_vert_dy->Fill(dy,dr);
 						photon_vert_dz->Fill(dz,mct.pt->at(j));
+						if(mct.pt->at(j) < 50) std::cout << "pt less thn expecteeed " << std::endl;
 						}
 					}
 				}
@@ -179,7 +180,7 @@ int main(int argc, char **argv){
 	system(("mkdir"+PLOTPATH+"/controlplots").c_str());
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",photon_dr_clusMTD,"Sphoton_dr_clusMTD");
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",ele_dr_clusMTD,"Sele_dr_clusMTD");
-	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"pt(Gev/c)",photon_vert_dz,"Sphoton_vert_dz");
+	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dz(cm)",photon_vert_dz,"Sphoton_vert_dz");
 	
 	slices[0]=photon_vert_dx->ProjectionY("p",0,bin_dr-1);
 	proj_full[0]=dr_photon_clus->ProjectionX("1",0,bin_pt-1);
