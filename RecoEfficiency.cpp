@@ -85,13 +85,13 @@ int main(int argc, char **argv){
 		mct.fChain->GetEntry(i);
 		cand.fChain->GetEntry(i);
 		gen.fChain->GetEntry(i);
-		float temp=0;
+		float temp=-1;
 		float electrons[2];
 		std::cout <<"____"<< cand.event << std::endl;
 		for(j=0;j<mct.pt->size();j++){
 			if(temp != mct.label->at(j) )temp = mct.label->at(j);
 			for(k=0;k<mct.pt->size();k++){
-				if(mct.label->at(k)==temp && mct.convRadius->at(k)<Xmax && mct.plabel->at(j)!= mct.plabel->at(k)){
+				if(mct.label->at(k)==temp && mct.convRadius->at(k)<Xmax && mct.plabel->at(j)== mct.plabel->at(k)){
 	
 				histo_sig[4]->Fill(mct.convRadius->at(k),gen.pt->at(mct.label->at(k)));
 				electrons[0]=mct.plabel->at(k);
@@ -99,10 +99,11 @@ int main(int argc, char **argv){
 					std::cout << "mctlabel_mctlabel "<<electrons[0] <<"____"<< electrons[1] <<  std::endl;
 				
 					std::cout << "candsize "<< cand.plabel->size() <<  std::endl;
-				for(idx=0; idx< cand.plabel->size();idx++){
+				if(cand.plabel->size()>0){
+				for(idx=0; idx < cand.plabel->size();idx++){
 					if(cand.plabel->at(idx)== electrons[0]){
-					for(ind=0; ind< cand.pt->size();ind++){
 					std::cout << "candlabel_candlabel "<<cand.plabel->at(ind) <<"____"<< cand.plabel->at(idx) <<  std::endl;
+					for(ind=0; ind < cand.pt->size();ind++){
 					if(cand.plabel->at(ind)== electrons[1] && idx != ind){
 					 histo_sig[0]->Fill(mct.convRadius->at(k),gen.pt->at(mct.label->at(k)));
 					
@@ -121,7 +122,7 @@ int main(int argc, char **argv){
 					std::cout << "plabels " <<  std::endl;
 					}
 					else if(cand.plabel->at(ind) == electrons[1]) histo_sig[1]->Fill(mct.convRadius->at(k),gen.pt->at(mct.label->at(k)));
-					else if (cand.plabel->at(ind==-1)) histo_sig[2]->Fill(mct.convRadius->at(k),gen.pt->at(mct.label->at(k)));
+					else if (cand.plabel->at(ind) ==-1) histo_sig[2]->Fill(mct.convRadius->at(k),gen.pt->at(mct.label->at(k)));
 					break;
 					}
 				}else if (cand.plabel->at(ind)==-1 && cand.plabel->at(idx)==-1){
@@ -130,10 +131,12 @@ int main(int argc, char **argv){
 						}
 
 						}
+						}
+					}	
 			break;		}
 				}
 			}
-		}
+		
 	
 				
 		/*{{	for(j=0;j<particleId->size();j++){

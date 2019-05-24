@@ -22,6 +22,9 @@
 #include "TGraph.h"
 #include "TPaveText.h"
 #include "TLegend.h"
+#include "TRandom.h"
+#include "Math/Vector3D.h"
+#include "Math/Point3D.h"
 #include "NeutralsClass.h"
 #include "NeutralsClass.cpp"
 
@@ -41,34 +44,113 @@ struct pos{
 
 };
 
-float  matcher(float eta1,float phi1,std::vector<float>* eta2,std::vector <float>* phi2,std::vector <float>* x2,std::vector <float>* y2,std::vector <float>* z2,std::vector <float>* pt2,struct pos* pos, std::pair <float,float>* pair ){
+void AngularCorrection(struct pos* pos, TVector3* vertex, bool ECAL,struct pos ECALpoint){
+	
+	ROOT::Math::XYZPoint vert, clus;
+	vert.SetCoordinates(vertex->x(),vertex->y(),vertex->z());
+	clus.SetCoordinates(ECALpoint.x,ECALpoint.y,ECALpoint.z);
+	ROOT::Math::XYZVector diff;
+	diff = clus-vert;
+//	float phi = atan((ECALpoint.y-vertex->y())/(ECALpoint.x-vertex->x()));
+//	float m1 = (ECALpoint.y-vertex->y())/(ECALpoint.z-vertex->z());
+//	float theta = atan(m1);
+//	TVector3 temp;
+//	temp.SetPhi(phi);
+//	temp.SetTheta(theta);
+//	temp.setMag(sqrt(pow((ECALpoint.y-vertex->y(),2))+pow((ECALpoint.x-vertex->x(),2))+pow((ECALpoint.z-vertex->z(),2))));	
+	(*pos).x= ECALpoint.x;
+	(*pos).y= ECALpoint.y;
+	(*pos).z= ECALpoint.z;
+	(*pos).phi= diff.Phi();
+	(*pos).eta= diff.Eta();
+
+
+}
+float  matcher(float eta1,float phi1,std::vector<float>* eta2,std::vector <float>* phi2,std::vector <float>* x2,std::vector <float>* y2,std::vector <float>* z2,std::vector <float>* pt2,struct pos* pos, std::pair <float,float>* pair, TVector3* vert, bool ECAL ){
 
 	int k;
-	float dr_min = 1e6;
-	//std::cout << "in matcherrr" << std::endl;
+	float dr_min=1e6;
+	float drphi_min = 1e6;
+	float dreta_min = 1e6;
+	std::cout << "in matcherrr" << std::endl;
+	
+	if(phi2->size()>0){
 	for(k=0;k<phi2->size();k++){
-		float dr = sqrt(pow((eta1-eta2->at(k)),2)+pow((phi1-phi2->at(k)),2));
-		if(dr_min>dr){
+	struct pos temp;
+	temp.x = x2->at(k);
+	temp.y = y2->at(k);
+	temp.z = z2->at(k);
+	temp.eta = eta2->at(k);
+	temp.phi = phi2->at(k);
+	//if (ECAL == true)AngularCorrection(&temp,vert,true,temp.eta,temp.phi, sqrt(pow(temp.x,2)+pow(temp.y,2)));
+	//else AngularCorrection(&temp,vert,false,temp.eta,temp.phi, sqrt(pow(temp.x,2)+pow(temp.y,2)));
+	float dr = sqrt(pow((eta1-temp.eta),2)+pow((phi1-temp.phi),2));
+		
+		if(dr_min>dr/*abs(temp.eta-eta1)< 0.04 && abs(temp.phi-phi1) < 0.05*/){
 
 			dr_min=dr;
 			*pair= std::make_pair(eta1,phi1);			
-			(*pos).x= x2->at(k);
-			(*pos).y= y2->at(k);
-			(*pos).z= z2->at(k);
-			(*pos).phi= phi2->at(k);
-			(*pos).eta= eta2->at(k);
-		if(k<pt2->size())	(*pos).pt= pt2->at(k);
+			(*pos).x= temp.x;
+			(*pos).y= temp.y;
+			(*pos).z= temp.z;
+			(*pos).phi= temp.phi;
+			(*pos).eta= temp.eta;
+	std::cout << "in for" <<x2->size() << phi2->size() <<  std::endl;
+		if(k<pt2->size()>0)	(*pos).pt= pt2->at(k);
 	
 //	std::cout << "dr_min" << dr_min  << std::endl;
 		}
 
 	}
+}
 
-
+	std::cout << "out matcherrr" << std::endl;
 	if(dr_min <100 )return dr_min;		
 	else return -1;
 
 
+
+}
+
+float  NonoiseMTD(TVector3* vertex,struct pos ECALpoint, std::pair <float,float> pair, struct pos* pos ){
+	
+	TRandom * rand = new TRandom();
+	rand->SetSeed();
+	float reso_long = 0.5;
+	float reso_trans = 0.3/sqrt(12);
+	//Computing from 0,0,0  and not from vertex bc cluster is in 0,0,0,0
+	float radius= 117;
+	float reso_eta,reso_phi,dis_eta, dis_phi;
+	float dr;
+	struct pos temp1;
+//	AngularCorrection(&temp1,vertex,true,ECALpoint);
+	reso_eta = reso_trans/(radius/sin(2*atan(exp(-pair.first))));
+	reso_phi = reso_long/radius;
+	
+	std:: cout << "INSIDE nonoise_________________________" << reso_eta << std::endl;
+	(*pos).eta = rand->Uniform((double)(-reso_eta+pair.first),(double)(reso_eta+pair.first));
+	(*pos).phi = rand->Uniform(-reso_phi+pair.second,reso_phi+pair.second);
+	float m = tan((*pos).phi);
+	float m1 = tan(2*atan(exp(-(*pos).eta)));
+	float c = vertex->y()-m*vertex->x();
+	float c1 = vertex->y()-m1*vertex->z();
+	float x,y,z;
+	if ((*pos).phi >0) x = (-m*c +sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
+	else x = (-m*c -sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
+	y = m*x +c ;
+	z = (y-c1)/m1;
+//	ROOT::Math::RhoEtaPhiVector temp(radius,(*pos).eta,(*pos).phi);
+//	float t = (vertex->Mag() * sin(temp.Theta()-vertex->Theta()))/sin(temp.Theta());
+	(*pos).x = x;	
+	(*pos).y = y;	
+	(*pos).z = z;
+	std::cout << "----------------------------------------------------------sim "<< (*pos).eta << "------------- " << (*pos).phi << std::endl;
+	std::cout << "----------------------------------------------------------sim "<< ECALpoint.eta << "------------- " << ECALpoint.phi << std::endl;
+	std::cout << "----------------------------------------------------------sim "<< temp1.eta << "-------------" << temp1.phi << std::endl;
+	std::cout << "----------------------------------------------------------rad mtd sim "<< sqrt(x*x+y*y) <<    std::endl;
+	dr = sqrt(pow((ECALpoint.eta-(*pos).eta),2)+pow((ECALpoint.phi-(*pos).phi),2));
+	std::cout << "----------------------------------------------------------sim "<< dr  << std::endl;
+	return dr;
 
 }
 
@@ -128,7 +210,8 @@ void Slicer(std::string PLOTPATH,int bin,float min, float max,std::string xaxis,
 		mean[i]=proj[i]->GetMean();
 		RMS[i]=proj[i]->GetMeanError();
 
-		SavePlot ("", proj[i],(PLOTPATH+"/controlplots/"+filename+std::string(range)+"_.pdf").c_str() ,false);
+	
+	SavePlot ("", proj[i],(PLOTPATH+"/controlplots/"+filename+std::string(range)+"_.pdf").c_str() ,false);
 
 
 	}
@@ -179,13 +262,13 @@ void Plotter(float ecal_x,float ecal_y, float mtd_x, float mtd_y, TVector3 * ver
 	ECALpoint->Draw("same");
 	MTDpoint->Draw("same");
 	MTD_ECAL->DrawF1(-30,30,"same");
-	vertex_plot->SaveAs((PLOTPATH+"/vertex_"+std::to_string(mtd_x)+".pdf").c_str());
+	vertex_plot->SaveAs((PLOTPATH+"/vertex_"+std::to_string(vert->x())+".pdf").c_str());
 
 
 
 
 }
-float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, bool longitudinal = false,std::string PLOTPATH=""){
+float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, int reg_type ,std::string PLOTPATH=""){
 	float m1;
 	float c1,c2;
 	float dr=-1;
@@ -197,8 +280,8 @@ float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, bool
 	std::cout << "m1" << m1 <<"__" <<  c1 << std::endl;
 	std::cout << "coord_MTDx" << x1 <<"ECALX__" <<  x2 << std::endl;
 	std::cout << "coord_MTDy" << y1 << "ECALY__"<< y2 << std::endl;
-	if((y1 >0 && m1*x1 >0) || (y1< 0 && m1*x1<0)){
-	if(longitudinal==true ){
+	//if((y1 >0 && m1*x1 >0) || (y1< 0 && m1*x1<0)){
+	if(reg_type==2 ){
 
 	dr = c1-vert->y();
 	std::cout << "dr " << dr << std::endl;
@@ -206,14 +289,15 @@ float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, bool
 
 	}else{
 
-	dr = -c1/m1-vert->x();
+	if(reg_type==1)dr = (vert->y()-c1)/m1-vert->X();
+	else if(reg_type==3)dr = (vert->y()-c1)/m1-vert->Z();
 	if(m1>10 && m1<30 &&  sqrt(x2*x2+y2*y2)>116)Plotter(x2,y2,x1,y1,vert,m1,c1,PLOTPATH);
 	std::cout << "dr " << dr << std::endl;
 	return dr ;
 
 	}		
 
-	}else return dr;
+//	}else return dr;
 
 
 }
@@ -272,10 +356,10 @@ TF1* N_gausFit(TH1D* hist, int n_gaus){
 		fits[i]->SetParameter(0,hist->GetMaximum());
 		fits[i]->SetParameter(1,hist->GetMean());
 		fits[i]->SetParameter(2,hist->GetRMS());
-		if(i==0)fits[i]->SetParLimits(0,hist->GetMaximum()-3,hist->GetMaximum()+(int)hist->GetMaximum()/7);
-		else fits[i]->SetParLimits(0,0,hist->GetMaximum()/2);
+		if(i==0)fits[i]->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/20,hist->GetMaximum()+(int)hist->GetMaximum()/3);
+		else fits[i]->SetParLimits(0,0,hist->GetMaximum()/2.5);
 		std::cout << "___" << i << "___fit name___" << fits[i]->GetName() << std::endl; 
-		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0REM");
+		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0R");
 		fits[i]->GetParameters(&par[i*3]);
 		global_formula+="gaus("+std::to_string(i*3)+")";
 		if(i != n_gaus-1) global_formula+="+";
@@ -286,8 +370,8 @@ TF1* N_gausFit(TH1D* hist, int n_gaus){
 	if(i%3 != 1)	global_fit->SetParLimits(i,0,1000);
 
 	}
-	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/10,hist->GetMaximum()+(int)hist->GetMaximum()/10);
-	hist->Fit("global_fit","0REM");
+	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/20,hist->GetMaximum()+(int)hist->GetMaximum()/20);
+	hist->Fit("global_fit","0R");
 	return global_fit;
 
 

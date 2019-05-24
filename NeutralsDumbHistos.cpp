@@ -120,20 +120,20 @@ int main (int argc, char **argv){
 	PLOTPATH=std::string(" ~/CMSSW_10_4_0_mtd5_prova/plots/"+outname+"events");
 	system (("mkdir "+ PLOTPATH).c_str());
 
-	TH1F * histo_pt =new TH1F("photons pt","photons pt",60,0,60);
+	TH1F * histo_pt =new TH1F("photons pt","photons pt",10,0,10);
 	TH1F * histo_eta =new TH1F("photons eta","photons eta",30,-2,2);
 	TH1F * histo_rad =new TH1F("photons conversion radius tot","photons conversion radius(for unconv r=0)tot ",100,0,150);
-	TH1F * histoconv_pt =new TH1F(" converted photons pt ","barrel (|#eta| < 1.4) conv photons pt (R < 1.20 m)",60,0,60);
+	TH1F * histoconv_pt =new TH1F(" converted photons pt ","barrel (|#eta| < 1.4) conv photons pt (R < 1.20 m)",10,0,10);
 	TH1F * histoconv_eta =new TH1F("converted photons eta ","barrel (|#eta| < 1.4) convertes photons eta (R < 1.10 m)",30,-2,2);
 	TH1F * histoconv_rad =new TH1F("photons conversion radius","photons conversion radius(for unconv r=0)",100,0,150);
 	TH1F * histocut_eta =new TH1F("mtd converted photons eta ","barrel (|#eta| < 1.4) mtd converted photons eta (1.10 m <R < 1.22 m)",30,-2,2);
-	TH1F * pt_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distribu ",50,0,60);
+	TH1F * pt_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distribu ",10,0,10);
 	//	TH1F * pt_ele2 =new TH1F("pt generated electron2 from conv ","pt generated electron2 from conv ",10,0,10);
-	TH1F * cand_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distributions ",50,0,60);
+	TH1F * cand_ele =new TH1F("pt distris","comparison among generated electrons and candidates pt distributions ",10,0,10);
 	//	TH1F * cand_ele2 =new TH1F("pt  electron2 from conv ","pt generated electron2 from conv ",10,0,10);
 
-	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",50,0,60);
-	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",50,0,60);
+	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
+	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",10,0,10);
 	TH2F * tracker =new TH2F("tracker radiograpy","tracker radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
 	//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
 
@@ -288,8 +288,8 @@ int main (int argc, char **argv){
 	pt_ele->GetYaxis()->SetTitle("N");
 	pt_ele->SetLineColor(kBlue);
 	cand_ele->SetLineColor(kRed);
-	cand_ele->DrawNormalized();
-	pt_ele->DrawNormalized("same");
+	pt_ele->Draw("");
+	cand_ele->Draw("same");
 	TLegend * legend1 = new TLegend();
 	legend1->AddEntry(pt_ele,"generated electrons","l");
 	legend1->AddEntry(cand_ele,"candidate electrons","l");

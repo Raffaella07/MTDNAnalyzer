@@ -125,11 +125,12 @@ int main(int argc, char **argv){
 	SavePlot("cand electrons eta", cand_electrons_eta,(PLOTPATH+"/RecoCheck/cand_electrons_eta.pdf").c_str(),false);
 	TCanvas * super_pt = new  TCanvas ("","superposition of pt distributions",600, 550);
 	TLegend* leg = new TLegend();
-	cand_electrons_pt->GetXaxis()->SetTitle("pt(GeV/c)");
-	cand_electrons_pt->GetYaxis()->SetTitle("N normalized");
-	cand_electrons_pt->Divide(mct_electrons_pt);
-	cand_electrons_pt->SetLineColor(kRed);
-	cand_electrons_pt->Draw();
+	mct_electrons_pt->GetXaxis()->SetTitle("pt(GeV/c)");
+	mct_electrons_pt->GetYaxis()->SetTitle("N normalized");
+	mct_electrons_pt->Divide(mct_electrons_pt);
+	mct_electrons_pt->SetLineColor(kRed);
+	mct_electrons_pt->Draw();
+	//cand_electrons_pt->Draw("same");
 	//leg->AddEntry(mct_electrons_pt,"simulated electrons");
 	leg->AddEntry(cand_electrons_pt,"candidate electrons");
 	leg->Draw();
