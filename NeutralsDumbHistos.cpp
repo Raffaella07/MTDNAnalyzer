@@ -22,6 +22,7 @@
 #include "TGraph.h"
 #include "TPaveText.h"
 #include "TLegend.h"
+#include "TLatex.h"
 #include "NeutralsClass.h"
 #include "NeutralsClass.cpp"
 struct track {
@@ -135,6 +136,7 @@ int main (int argc, char **argv){
 	TH1F * matched_t =new TH1F("pr of matched tracks to  electron1 from conv ","pt matched tracsk to electron1 from conv",10,0,10);
 	TH1F * matched_e =new TH1F("pt distributions "," comparison among  matched tracks and candidates pt distributions ",10,0,10);
 	TH2F * tracker =new TH2F("tracker radiograpy","tracker radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
+	TH2F * mtd =new TH2F("mtd radiograpy","mtd radiography(|#eta|< 1.4)",150,-150,150,150,-150,150);// radius in cm?
 	//	TH2F * radius_DR =new TH2F("convRadius gen_DR correlation","convRadius gen_DR correlation",50,0,150,10,0,0.1);// radius in cm?
 
 	for(i=0;i<cand.fChain->GetEntries();i++){
@@ -195,23 +197,24 @@ int main (int argc, char **argv){
 				histo_pt->Fill(gen.pt->at(k));
 				histo_eta->Fill(gen.eta->at(k));
 				histo_rad->Fill(gen.convRadius->at(k));
-					if (gen.eta->at(k) < 1.4  &&  gen.eta->at(k) > -1.4){ 
-						if (gen.convRadius->at(k) < 110 )
+						if (gen.eta->at(k) < 1.6  &&  gen.eta->at(k) > -1.6){ 
+						if (gen.convRadius->at(k) < 114 )
 						{
 							histoconv_pt->Fill(gen.pt->at(k));
 							histoconv_eta->Fill(gen.eta->at(k));
 							histoconv_rad->Fill(gen.convRadius->at(k));
 						}
 
-						else if( (gen.convRadius->at(k) > 114 && gen.convRadius->at(k) < 118) )
+						else if( (gen.convRadius->at(k) > 115 && gen.convRadius->at(k) < 118) )
 						{
 							histocut_eta->Fill(gen.eta->at(k));
 							////		histocut_pt>Fill(pt->at(k));
 						}
-
+						if(gen.convRadius->at(k) < 114)
 						tracker->Fill(gen.convRadius->at(k)*cos(gen.phi->at(k)),gen.convRadius->at(k)*sin(gen.phi->at(k)));
-					}	
-				
+						else if (gen.convRadius->at(k) >115 && gen.convRadius->at(k) < 123)
+						mtd->Fill(gen.convRadius->at(k)*cos(gen.phi->at(k)),gen.convRadius->at(k)*sin(gen.phi->at(k)));
+				}
 			}
 		
 		for (j=0; j < Eventelectrons.size(); j++){
@@ -310,9 +313,20 @@ int main (int argc, char **argv){
 	TCanvas * phototrack  =new TCanvas("tracker radiography","tracker radioography", 650,550); 
 	tracker->SetMarkerStyle(8);
 	tracker->SetMarkerSize(.2);
+	tracker->SetMarkerColor(kTeal+4);
+	mtd->SetMarkerStyle(8);
+	mtd->SetMarkerSize(.2);
+	mtd->SetMarkerColor(kOrange+7);
 	tracker->GetXaxis()->SetTitle("X (cm)");
 	tracker->GetYaxis()->SetTitle("Y (cm)");
 	tracker->Draw();
+	mtd->Draw("SAME");
+	TLatex lt;
+	lt.SetTextSize(0.04);
+	lt.SetTextAlign(13);
+	lt.DrawLatex(-140,140,"Photons converting in");	
+	lt.DrawLatex(+55,140,"#color[807]{BTL}");	
+	lt.DrawLatex(+55,125,"#color[844]{Tracker layers}");	
 	phototrack->SaveAs((PLOTPATH+"/phototracker.pdf").c_str());
 
 
@@ -357,18 +371,25 @@ void MaterialBudget(TH1F* hist1,TH1F* hist2, std::string PATH ){
 
 	//mtd_budget->Print();
 	TCanvas* budget = new TCanvas("material budget","material budget", 650,550); 
-	tracker_budget->SetLineColor(kRed);
-	tracker_budget->SetFillColor(kRed);
-	mtd_budget->SetLineColor(kBlue);
+	tracker_budget->SetLineColor(kRed-6);
+	tracker_budget->SetLineWidth(4);
+	tracker_budget->SetFillColor(kRed-6);
+	tracker_budget->SetFillStyle(3002);
+	
+	mtd_budget->SetLineColor(kAzure-5);
+	mtd_budget->SetLineWidth(4);
+	mtd_budget->SetFillColor(kAzure-5);
+	mtd_budget->SetFillStyle(3002);
 	mtd_budget->GetYaxis()->SetRangeUser(0,0.75);
+	mtd_budget->GetXaxis()->SetRangeUser(-2,2);
 	mtd_budget->GetXaxis()->SetTitle("#eta");
 	mtd_budget->GetYaxis()->SetTitle("X/X_{0}");
-	mtd_budget->Draw("ALP");
-	tracker_budget->Draw("LP");
+	mtd_budget->Draw("ALPF");
+	tracker_budget->Draw("LPF");
 
-	TLegend * budget_legend = new TLegend(0.35,0.8,0.65,0.9);
-	budget_legend->AddEntry(tracker_budget, "tracker (R < 1.10 m) ", "l");
-	budget_legend->AddEntry(mtd_budget, "mtd (1.10 m < R < 1.20 m) ", "l");
+	TLegend * budget_legend = new TLegend(0.25,0.7,0.65,0.9);
+	budget_legend->AddEntry(tracker_budget, "tracker (R < 1.14 m) ", "l");
+	budget_legend->AddEntry(mtd_budget, "mtd (1.16 m < R < 1.18 m) ", "l");
 	//	std::cout << "_______________HERE____________" << std::endl;
 	budget_legend->Draw();
 	budget->SaveAs((PATH+"/materialbudget.pdf").c_str());
@@ -384,17 +405,22 @@ TGraph* rad_lenght(TH1F* hist){
 
 		}
 	}
-	float radlenght[counter],eta[counter];
+	float radlenght[counter+2],eta[counter+2];
 	counter =0;
 	for (i=0;i<hist->GetNbinsX(); i++){ 
 		if(hist->GetBinCenter(i)< 1.41 &&  hist->GetBinCenter(i) > -1.41){
 			counter++;
-			radlenght[counter-1]=-log(1-hist->GetBinContent(i));
-			eta[counter-1]=hist->GetBinCenter(i);
+			radlenght[counter]=-log(1-hist->GetBinContent(i));
+			eta[counter]=hist->GetBinCenter(i);
 		}	
 	}
+	counter++;
+	radlenght[0]=0;
+	eta[0]=eta[1];
+	radlenght[counter]=0;
+	eta[counter]=eta[counter-1];
 	std::cout << "##### NBIN " << hist->GetNbinsX() << std::endl;
-	TGraph * MBudget = new TGraph(counter,eta,radlenght);
+	TGraph * MBudget = new TGraph(counter+1,eta,radlenght);
 
 	return MBudget;
 }

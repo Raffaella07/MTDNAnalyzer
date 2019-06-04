@@ -50,6 +50,7 @@ int main(int argc, char **argv){
 	float dr,label=-1;
 	//--bin variables
 	int bin_dr,bin_pt,bin_eta;
+	int match=0;
 	float dr_min, dr_max,pt_min,pt_max,eta_min,eta_max;
 	//--filenames
 	std::string ang_filename[4]={"gen_clus_pho_deta.pdf","gen_clus_pho_dphi.pdf","gen_clus_gpho_eta.pdf", "gen_clus_gpho_phi.pdf"};
@@ -66,8 +67,8 @@ int main(int argc, char **argv){
 	bin_pt=10;
 	dr_min=0;
 	dr_max=0.4;
-	pt_min=50;
-	pt_max=60;
+	pt_min=0;
+	pt_max=10;
 	bin_eta=10;
 	eta_min=0;
 	eta_max=3;
@@ -95,13 +96,14 @@ int main(int argc, char **argv){
 	angular_dis[2]= new TH1D("#eta_{clus}-#eta_{geom}","#eta_{clus}-#eta_{geom}",40,-0.03,0.03);
 	angular_dis[3]= new TH1D("#phi_{clus}-#phi_{geom}","#phi_{clus}-#phi_{geom}",40,-0.03,0.03);
 	TH1D* slices[2];
+	TH1D * reso_sim= new TH1D("","z reso simulation", 50,-10,10);
 	TH2D* dr_photon_clus = new TH2D("","dr among clusters and matched mct photons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* dr_electron_clus = new TH2D("","dr among clusters and matched mct electrons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* photon_dr_clusMTD = new TH2D("","dr among clusters and MTD hit for mct photons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* ele_dr_clusMTD = new TH2D("","dr among clusters and Mtd hit for mct electrons",bin_dr,dr_min,dr_max,bin_pt,pt_min,pt_max);
 	TH2D* photon_vert_dx = new TH2D("","dx of the real vertex wrt to the ECAL_MTD line",10,-15,15,50,0.0,0.4);
 	TH2D* photon_vert_dy = new TH2D("","dy of the real vertex wrt to the ECAL_MTD line",35,-15,15,2,0,0.5);
-	TH2D* photon_vert_dz = new TH2D("","dz of the real vertex wrt to the ECAL_MTD line",45,-15,15,bin_pt,pt_min,pt_max);
+	TH2D* photon_vert_dz = new TH2D("","dz of the real vertex wrt to the ECAL_MTD line",50,-10,10,bin_pt,pt_min,pt_max);
 
 
 
@@ -125,7 +127,7 @@ int main(int argc, char **argv){
 			vertex->SetY(mct.primary_y->at(j));
 			vertex->SetZ(mct.primary_z->at(j));
 			if(abs(mct.eta->at(j))< 1.4){
-		std::cout << "primaryvertexZ" << vertex->Z() << "___" << cand.ecalx->size() << std::endl;
+		std::cout << "mct pt" << mct.pt->at(j) << std::endl;
 //			//--matches mct phtons to clusters
 			dr = matcher(mct.eta->at(j),mct.phi->at(j),cand.ecaleta, cand.ecalphi,cand.ecalx,cand.ecaly,cand.ecalz,cand.pt,&matched_clus,&matched_mct,vertex,true);
 			if(dr <0.05 && dr != -1){
@@ -138,13 +140,14 @@ int main(int argc, char **argv){
 				}else if(label == 2) dr_electron_clus->Fill(dr,mct.pt->at(j));
 			
 //		std::cout << "herewww"	 << std::endl; 	
-			if(nonoise == 0){ NonoiseMTD(vertex,matched_clus,matched_mct,&matched_MTDhit);
-			std::cout << "-----------------------------------------------clus " << matched_clus.x << "-------------------------" << matched_clus.y << "---------------------------" << matched_clus.z << std::endl;
-			}else if (nonoise == 1)dr = matcher(matched_clus.eta,matched_clus.phi,cand.MTDeta, cand.MTDphi, cand.MTDx, cand.MTDy, cand.MTDz,cand.pt,&matched_MTDhit,&pair_clus, vertex, false);
-			std::cout << "clus_mtd dr____" << dr << "label__" <<label <<std::endl;
-
+			if(nonoise == 0){
+			
+	
+			 NonoiseMTD(vertex,matched_clus,matched_mct,&matched_MTDhit);
+			}else if (nonoise == 1){dr = matcher(matched_clus.eta,matched_clus.phi,cand.MTDeta, cand.MTDphi, cand.MTDx, cand.MTDy, cand.MTDz,cand.pt,&matched_MTDhit,&pair_clus, vertex, false);
+			}
 			if(dr !=-1){
-				if (label == 4 && (mct.convRadius->at(j)>116 && mct.convRadius->at(j) < 119)){ //--MTD converting photons
+				if (label == 4  && (mct.convRadius->at(j)>116 && mct.convRadius->at(j) < 119)){ //--MTD converting photons
 				 photon_dr_clusMTD->Fill(dr,matched_MTDhit.pt);
 				std::cout << "---------------------------------------------------------------------------------clus rad  " << sqrt(pow(matched_clus.x,2)+pow(matched_clus.y,2)) << std::endl;
 					if(dr < 0.05  && sqrt(pow(matched_clus.x,2)+pow(matched_clus.y,2))>129 && sqrt(pow(matched_MTDhit.x,2)+pow(matched_MTDhit.y,2))>116){
@@ -169,7 +172,12 @@ int main(int argc, char **argv){
 					/*	if(sqrt(dxy*dxy + dzy*dzy) < 10)*/
 						photon_vert_dx->Fill(dx,dr);
 						photon_vert_dy->Fill(dy,dr);
-						photon_vert_dz->Fill(dz,mct.pt->at(j));
+						std::cout << "____________________________________________________________________________________________________________________________________mct pt" << mct.pt->at(j) << std::endl;
+						photon_vert_dz->Fill(dz,vertex->z());
+						float theta = 2*atan(exp(-matched_clus.eta));
+
+						reso_sim->Fill(sqrt(pow(matched_clus.x,2)+pow(matched_clus.y,2))*(0.3/sqrt(12))/((sqrt(pow(matched_clus.x,2)+pow(matched_clus.y,2))-117/sin(theta))));
+						match++;
 				//		if(mct.pt->at(j) < 50) std::cout << "pt less thn expecteeed " << std::endl;
 						std::cout << "holaaa" << std::endl;
 						}
@@ -191,7 +199,7 @@ int main(int argc, char **argv){
 	system(("mkdir"+PLOTPATH+"/controlplots").c_str());
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",photon_dr_clusMTD,"Sphoton_dr_clusMTD");
 	Slicer(PLOTPATH,bin_pt,pt_min,pt_max,"dr",ele_dr_clusMTD,"Sele_dr_clusMTD");
-	Slicer(PLOTPATH,10,-1.4,pt_max,"dz(cm)",photon_vert_dz,"Sphoton_vert_dz");
+	Slicer(PLOTPATH,14,-7,7,"dz(cm)",photon_vert_dz,"Sphoton_vert_dz");
 	
 	slices[0]=photon_vert_dx->ProjectionY("p",0,bin_dr-1);
 	proj_full[0]=dr_photon_clus->ProjectionX("1",0,bin_pt-1);
@@ -208,7 +216,7 @@ int main(int argc, char **argv){
 	proj_full[3]->GetXaxis()->SetTitle("dr");
 	proj_full[4]->GetXaxis()->SetTitle("dx(cm)");
 	proj_full[5]->GetXaxis()->SetTitle("dy(cm)");
-	proj_full[6]->GetXaxis()->SetTitle("dz(cm)");
+	proj_full[6]->GetXaxis()->SetTitle("|z_{gen} - z_{backtr}|(cm)");
 
 
 	for(i=0;i<7;i++){
@@ -230,7 +238,7 @@ int main(int argc, char **argv){
 	doublegaus_fit->SetParLimits(0,proj_full[6]->GetMaximum()-100,proj_full[6]->GetMaximum()+100);
 	proj_full[6]->Fit("doublegaus","0R");
 */	
-	doublegaus_fit = N_gausFit(proj_full[6],2);
+	doublegaus_fit =fitgaus(proj_full[6]);
 	for (i=0;i<4;i++){
 	angular_fit[i]=N_gausFit(angular_dis[i],2);
 	angular_dis[i]->GetXaxis()->SetTitle(angular_dis[i]->GetName());
@@ -240,11 +248,13 @@ int main(int argc, char **argv){
 
 
 	}
+	std::cout << "nonoise   " <<nonoise << "___matches "<< match << std::endl;
 //	SavePlot("Unconverted #gamma gen-cluster #Delta#eta",angular_dis[0],(PLOTPATH+"/gen_clus_pho_deta.pdf").c_str(),false,NULL);
 //	SavePlot("Unconverted #gamma gen cluster  #Delta#phi ",angular_dis[1],(PLOTPATH+"/gen_clus_pho_dphi.pdf").c_str(),false,NULL);
 //	SavePlot("Unconv #gamma gen-cluster geom #Delta#eta",angular_dis[2],(PLOTPATH+"/gen_clus_gpho_eta.pdf").c_str(),false,NULL);
 //	SavePlot("Unconv #gamma gen-cluster geom #Delta#phi",angular_dis[3],(PLOTPATH+"/gen_clus_gpho_phi.pdf").c_str(),false,NULL);
 	SavePlot("dr among matched mct photons and clusters",proj_full[0],(PLOTPATH+"/dr_photon_clus.pdf").c_str(),false,NULL);
+	SavePlot("resoetasim",reso_sim,(PLOTPATH+"/resoetasim.pdf").c_str(),false,NULL);
 	SavePlot("dr among matched mct electrons and clusters",proj_full[1],(PLOTPATH+"/dr_electron_clus.pdf").c_str(),false,NULL);
 	SavePlot("dr among MTD hit and cluster for mct photons",proj_full[2],(PLOTPATH+"/photon_dr_clusMTD.pdf").c_str(),false,NULL);
 	SavePlot("dr among MTD hit and cluster for mct electrons",proj_full[3],(PLOTPATH+"/ele_dr_clusMTD.pdf").c_str(),false,NULL);
@@ -253,6 +263,7 @@ int main(int argc, char **argv){
 //	SavePlot("dx for dr >0.02",slices[1],(PLOTPATH+"/controlplots/photon_vert_dx0.4.pdf").c_str(),false);
 	SavePlot("dy between real vertex and MTD_ECAL line",proj_full[5],(PLOTPATH+"/photon_vert_dy.pdf").c_str(),false,NULL);
 	SavePlot("dz between real vertex and MTD_ECAL line",proj_full[6],(PLOTPATH+"/photon_vert_dz.pdf").c_str(),false,doublegaus_fit);
+	SavePlot("dz between real vertex and MTD_ECAL line",proj_full[6],(PLOTPATH+"/photon_vert_dz.jpg").c_str(),false,doublegaus_fit);
 	SavePlot2D("dr vs dz",photon_vert_dz,(PLOTPATH+"/photon_vert_dz2.pdf").c_str(),false);
 //	proj_full[2]->Scale(1/proj_full[2]->Integral());	
 //	slices[0]->Scale(1/slices[0]->Integral());	

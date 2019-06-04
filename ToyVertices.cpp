@@ -10,13 +10,13 @@ int collision(int , float );
 
 int main(){
 	int i;
-	float sigma=1.14;
+	float sigma=0.872;
 	TRandom* rdm = new TRandom();
 	int PU=200, tries=10000;
 	float mean;
 	int vertices[tries];
 	for(i=0;i<tries; i++){
-	if(rdm->Uniform(1) < 0.38) vertices[i]=collision(200,sigma);
+	if(rdm->Uniform(1) < 1) vertices[i]=collision(200,sigma);
 	else vertices[i]=200;
 	}
 	std::cout <<" the mean of number of vertices for " << tries << " LHC collisions at " << PU << "pileup is " << TMath::Mean(tries,vertices) << "#pm" << TMath::RMS(tries,vertices)/sqrt(tries) << std::endl;

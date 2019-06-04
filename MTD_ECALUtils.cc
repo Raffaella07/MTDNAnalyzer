@@ -23,6 +23,7 @@
 #include "TPaveText.h"
 #include "TLegend.h"
 #include "TRandom.h"
+#include "TLatex.h"
 #include "Math/Vector3D.h"
 #include "Math/Point3D.h"
 #include "NeutralsClass.h"
@@ -82,7 +83,7 @@ float  matcher(float eta1,float phi1,std::vector<float>* eta2,std::vector <float
 	temp.z = z2->at(k);
 	temp.eta = eta2->at(k);
 	temp.phi = phi2->at(k);
-	//if (ECAL == true)AngularCorrection(&temp,vert,true,temp.eta,temp.phi, sqrt(pow(temp.x,2)+pow(temp.y,2)));
+	//if (ECAL == true)AngularCorrection(&temp,vert,true,temp);
 	//else AngularCorrection(&temp,vert,false,temp.eta,temp.phi, sqrt(pow(temp.x,2)+pow(temp.y,2)));
 	float dr = sqrt(pow((eta1-temp.eta),2)+pow((phi1-temp.phi),2));
 		
@@ -112,71 +113,57 @@ float  matcher(float eta1,float phi1,std::vector<float>* eta2,std::vector <float
 
 }
 
-float  NonoiseMTD(TVector3* vertex,struct pos ECALpoint, std::pair <float,float> pair, struct pos* pos ){
-	
-	TRandom * rand = new TRandom();
-	rand->SetSeed();
-	float reso_long = 0.5;
-	float reso_trans = 0.3/sqrt(12);
-	//Computing from 0,0,0  and not from vertex bc cluster is in 0,0,0,0
-	float radius= 117;
-	float reso_eta,reso_phi,dis_eta, dis_phi;
-	float dr;
-	struct pos temp1;
-//	AngularCorrection(&temp1,vertex,true,ECALpoint);
-	reso_eta = reso_trans/(radius/sin(2*atan(exp(-pair.first))));
-	reso_phi = reso_long/radius;
-	
-	std:: cout << "INSIDE nonoise_________________________" << reso_eta << std::endl;
-	(*pos).eta = rand->Uniform((double)(-reso_eta+pair.first),(double)(reso_eta+pair.first));
-	(*pos).phi = rand->Uniform(-reso_phi+pair.second,reso_phi+pair.second);
-	float m = tan((*pos).phi);
-	float m1 = tan(2*atan(exp(-(*pos).eta)));
-	float c = vertex->y()-m*vertex->x();
-	float c1 = vertex->y()-m1*vertex->z();
-	float x,y,z;
-	if ((*pos).phi >0) x = (-m*c +sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
-	else x = (-m*c -sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
-	y = m*x +c ;
-	z = (y-c1)/m1;
-//	ROOT::Math::RhoEtaPhiVector temp(radius,(*pos).eta,(*pos).phi);
-//	float t = (vertex->Mag() * sin(temp.Theta()-vertex->Theta()))/sin(temp.Theta());
-	(*pos).x = x;	
-	(*pos).y = y;	
-	(*pos).z = z;
-	std::cout << "----------------------------------------------------------sim "<< (*pos).eta << "------------- " << (*pos).phi << std::endl;
-	std::cout << "----------------------------------------------------------sim "<< ECALpoint.eta << "------------- " << ECALpoint.phi << std::endl;
-	std::cout << "----------------------------------------------------------sim "<< temp1.eta << "-------------" << temp1.phi << std::endl;
-	std::cout << "----------------------------------------------------------rad mtd sim "<< sqrt(x*x+y*y) <<    std::endl;
-	dr = sqrt(pow((ECALpoint.eta-(*pos).eta),2)+pow((ECALpoint.phi-(*pos).phi),2));
-	std::cout << "----------------------------------------------------------sim "<< dr  << std::endl;
-	return dr;
-
-}
-
 void SavePlot (char * titlestring, TH1D * histo, const char * filename, bool log=false, TF1* fit= NULL){
 
 	TCanvas* canvas = new TCanvas(titlestring,titlestring,600,550);
 	if (log) canvas->SetLogy();
 	histo->GetXaxis()->SetMaxDigits(2);
+	histo->SetLineWidth(4);
+	histo->SetLineColor(kRed-6);
 	histo->Draw("hist");
 	if(fit !=NULL){
-	TPaveText* fitpar = new TPaveText(.6,.65,.95,.85,"NDC");
-	fitpar->SetTextFont(62);
-	fitpar->AddText("Gaussian fit parameters");
-	fitpar->AddLine(0,.8,1,.8);
+	TLatex fitpar;// = new TPaveText(.17,.75,.50,.90,"NDC");
+	fitpar.SetTextAlign(13);
+//	fitpar->SetFillColorAlpha(kWhite,0.);
+	fitpar.SetTextSize(0.030);
+	
+	fitpar.SetTextColor(kOrange+7);
+	fitpar.DrawLatex(histo->GetXaxis()->GetBinLowEdge(3),histo->GetMaximum(),"Two Gaussians fit");
+//	fitpar->AddLine(0,.8,1,.8);
 	char strng[15];
-	int n = sprintf(strng, "%.2E #pm %.2E",fit->GetParameter(0),fit->GetParError(0));
+	//int n = sprintf(strng, "%.2E #pm %.2E",fit->GetParameter(0),fit->GetParError(0));
 	
-	fitpar->AddText(("Constant  "+std::string(strng)).c_str());
+//	fitpar->AddText(("Constant  "+std::string(strng)).c_str());
 	
-	n = sprintf(strng, "%.2E #pm %.2E",fit->GetParameter(1),fit->GetParError(1));
-	fitpar->AddText(("Mean  "+std::string(strng)).c_str());
-	n = sprintf(strng, "%.2E #pm %.2E",fit->GetParameter(2),fit->GetParError(2));
-	fitpar->AddText(("#sigma  "+std::string(strng)).c_str());
-	fit->SetLineColor(kRed);
-	fit->Draw("SAME");
-	fitpar->Draw("SAME");
+//	n = sprintf(strng, "%.2E #pm %.2E",fit->GetParameter(1),fit->GetParError(1));
+//	fitpar->AddText(("Mean  "+std::string(strng)).c_str());
+	int n = sprintf(strng, "%.2E #pm %.1E",fit->GetParameter(2),fit->GetParError(2));
+	fitpar.DrawLatex(histo->GetXaxis()->GetBinLowEdge(3),histo->GetMaximum()-histo->GetMaximum()*0.1,("#bf{#sigma_{core}}  "+std::string(strng)).c_str());
+	fit->SetLineColor(kAzure-5);
+	fit->SetLineWidth(4);
+	fit->SetFillColor(kAzure-5);
+	fit->SetFillStyle(3015);
+	TF1 * gaus[2];
+/*	gaus[0] = new TF1("narrowgauss","gaus(0)",histo->GetMean()-histo->GetNbinsX()/6*histo->GetXaxis()->GetBinWidth(1),histo->GetMean()+histo->GetNbinsX()/6*histo->GetXaxis()->GetBinWidth(1));
+	gaus[1] = new TF1("widegauss","gaus",histo->GetMean()-histo->GetNbinsX()/2*histo->GetXaxis()->GetBinWidth(1),histo->GetMean()+histo->GetNbinsX()/2*histo->GetXaxis()->GetBinWidth(1));
+	gaus[0]->SetParameter(0,750);
+	gaus[0]->SetParameter(1,fit->GetParameter(1));
+	gaus[0]->SetParameter(2,2.06020);
+//	gaus[0]->SetParameter(3,fit->GetParameter(3));
+//	gaus[0]->SetParameter(4,fit->GetParameter(4));
+//	gaus[0]->SetParameter(5,fit->GetParameter(5));
+	gaus[1]->SetParameter(0,200);
+	gaus[1]->SetParameter(1,fit->GetParameter(4));
+	gaus[1]->SetParameter(2,6);*/
+	
+	fit->Draw("SAMEFC");
+/*	gaus[0]->SetLineColor(kOrange+7);
+	gaus[0]->SetLineWidth(4);
+	gaus[1]->SetLineColor(kGreen+1);
+	gaus[1]->SetLineWidth(4);
+	gaus[0]->Draw("SAME");
+	gaus[1]->Draw("SAME");*/
+	//fitpar->Draw("SAME");
 
 	}
 	canvas->SaveAs(filename);
@@ -192,6 +179,77 @@ void SavePlot2D (char * titlestring, TH2D * histo, const char * filename, bool l
 	canvas->SaveAs(filename);
 
 	canvas->Clear();
+}
+
+float  NonoiseMTD(TVector3* vertex,struct pos ECALpoint, std::pair <float,float> pair, struct pos* pos ){
+	
+	TRandom * rand = new TRandom();
+	rand->SetSeed();
+	float reso_long = 0.5;
+	float reso_trans = 0.3/sqrt(12);
+	//Computing from 0,0,0  and not from vertex bc cluster is in 0,0,0,0
+	float radius= 117;
+	float reso_eta,reso_phi,dis_eta, dis_phi;
+	float dr;
+	struct pos temp1;
+	//AngularCorrection(&temp1,vertex,true,ECALpoint);
+	reso_eta = reso_trans/(radius/sin(2*atan(exp(-ECALpoint.eta))));
+	reso_phi = reso_long/radius;
+	ROOT::Math::XYZPoint cluster;
+	ROOT::Math::XYZPoint v;
+	v.SetCoordinates(vertex->x(),vertex->y(),vertex->z());
+	cluster.SetCoordinates(ECALpoint.x,ECALpoint.y,ECALpoint.z);
+	ROOT::Math::XYZVector  temp = cluster-v;
+//	float phi = atan(ECALpoint.y-vertex->y())/(ECALpoint.x-vertex->x());
+//	float eta = atan(sqrt(pow(ECALpoint.x-vertex->x(),2)+pow(ECALpoint.y-vertex->y(),2))/(ECALpoint.z-vertex->z()));
+	//float eta = log(tan(theta/2));
+//	ROOT::Math::Polar3DVector temp(sqrt(pow(ECALpoint.x-vertex->x(),2)+pow(ECALpoint.y-vertex->y(),2)+pow(ECALpoint.z-vertex->z(),2)),theta,phi);
+	std:: cout << "INSIDE nonoise_________________________" << reso_eta << std::endl;
+	(*pos).eta = rand->Gaus(temp.Eta(),reso_eta);
+	(*pos).phi = rand->Gaus(temp.Phi(),reso_phi);
+	//ROOT::Math::RhoEtaPhiVector vect();	
+
+	float m =  tan((*pos).phi);
+	float theta = 2*atan(exp(-(*pos).eta));
+	float m1 = tan(theta);
+	float c = ECALpoint.y-m*ECALpoint.x;
+	float c1 = sqrt(pow(ECALpoint.x,2)+pow(ECALpoint.y,2))-m1*ECALpoint.z;
+	
+	float x,y,z;
+	 
+	//x = vertex->x()+(radius-vertex->Mag()) * cos((*pos).phi)*sin(theta);
+	//y = vertex->y()+(radius-vertex->Mag()) * sin((*pos).phi)*sin(theta);
+	//z = vertex->z()+(radius-vertex->Mag()) * cos(theta);
+	float x1 = (-m*c +sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
+	float x2 = (-m*c -sqrt(-c*c+radius*radius+m*m*radius*radius))/(1+m*m);
+	float y1 = m*x1+c;
+	float y2 = m*x2+c;
+	if(sqrt(pow((ECALpoint.x-x1),2)+pow((ECALpoint.y-y1),2)) <sqrt(pow((ECALpoint.x-x2),2)+pow((ECALpoint.y-y2),2))){
+	x = x1;
+	y = y1;
+	}else{
+
+	x = x2;
+	y = y2;
+	}
+	float z1 =(radius-c1)/m1;
+	float z2 = (-radius-c1)/m1;
+	
+	if(sqrt(pow((ECALpoint.z-z1),2)+pow(radius,2)) <sqrt(pow((ECALpoint.z-z2),2)+pow(radius,2))) z = z1;
+	else z = z2;
+//	ROOT::Math::RhoEtaPhiVector temp(radius,(*pos).eta,(*pos).phi);
+//	float t = (vertex->Mag() * sin(temp.Theta()-vertex->Theta()))/sin(temp.Theta());
+	(*pos).x = x;	
+	(*pos).y = y;	
+	(*pos).z = z;
+	std::cout << "----------------------------------------------------------sim "<< (*pos).eta << "------------- " << (*pos).phi << std::endl;
+	std::cout << "----------------------------------------------------------sim "<< ECALpoint.eta << "------------- " << ECALpoint.phi << std::endl;
+	//std::cout << "----------------------------------------------------------sim "<< temp1.eta << "-------------" << temp1.phi << std::endl;
+	std::cout << "---------------------------------------------------------- sim coord "<<x << "----------------" << y <<"--------------------"<< z <<    std::endl;
+	dr = sqrt(pow((ECALpoint.eta-(*pos).eta),2)+pow((ECALpoint.phi-(*pos).phi),2));
+	std::cout << "----------------------------------------------------------sim "<< dr  << std::endl;
+	return dr;
+
 }
 
 void Slicer(std::string PLOTPATH,int bin,float min, float max,std::string xaxis,TH2D *hist2D,std::string filename){
@@ -280,7 +338,7 @@ float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, int 
 	std::cout << "m1" << m1 <<"__" <<  c1 << std::endl;
 	std::cout << "coord_MTDx" << x1 <<"ECALX__" <<  x2 << std::endl;
 	std::cout << "coord_MTDy" << y1 << "ECALY__"<< y2 << std::endl;
-	//if((y1 >0 && m1*x1 >0) || (y1< 0 && m1*x1<0)){
+//	if((y1 >0 && m1*x1 >0) || (y1< 0 && m1*x1<0)){
 	if(reg_type==2 ){
 
 	dr = c1-vert->y();
@@ -289,13 +347,14 @@ float VertexDistance(TVector3 *vert,float x1, float x2, float y1, float y2, int 
 
 	}else{
 
-	if(reg_type==1)dr = (vert->y()-c1)/m1-vert->X();
-	else if(reg_type==3)dr = (vert->y()-c1)/m1-vert->Z();
+	if(reg_type==1)dr = (-c1)/m1-vert->X();
+	else if(reg_type==3)dr = (-c1)/m1-vert->Z();
 	if(m1>10 && m1<30 &&  sqrt(x2*x2+y2*y2)>116)Plotter(x2,y2,x1,y1,vert,m1,c1,PLOTPATH);
 	std::cout << "dr " << dr << std::endl;
 	return dr ;
 
 	}		
+
 
 //	}else return dr;
 
@@ -327,7 +386,7 @@ void AngularCoordinates(TH1D **hist, std::pair <float,float> matched_mct, struct
 TF1* fitgaus(TH1D* hist){
 
 	TF1* fit= new TF1("gaus","gaus",hist->GetMean()-hist->GetNbinsX()/4*hist->GetXaxis()->GetBinWidth(1),hist->GetMean()+hist->GetNbinsX()/4*hist->GetXaxis()->GetBinWidth(1));
-	fit->SetParLimits(0,hist->GetMaximum()-50,hist->GetMaximum()+50);
+	fit->SetParLimits(0,hist->GetMaximum()-50,hist->GetMaximum()+10);
 	fit->SetParameter(1,hist->GetMean());
 	fit->SetParameter(2,hist->GetRMS());
 	hist->Fit("gaus","R0EM");
@@ -347,31 +406,40 @@ TF1* N_gausFit(TH1D* hist, int n_gaus){
 	std::string global_formula= "";
 	std::pair <float,float> range[n_gaus*2];
 	for(i=0;i<n_gaus;i++){
-		if(i==0) range[i]=std::make_pair(hist->GetMean()-hist->GetNbinsX()/4*hist->GetXaxis()->GetBinWidth(1),hist->GetMean()+hist->GetNbinsX()/4*hist->GetXaxis()->GetBinWidth(1));
+		if(i==0) range[i]=std::make_pair(hist->GetMean()-hist->GetNbinsX()/10*hist->GetXaxis()->GetBinWidth(1),hist->GetMean()+hist->GetNbinsX()/10*hist->GetXaxis()->GetBinWidth(1));
 		else range[i]=std::make_pair(hist->GetMean()-hist->GetNbinsX()/2*hist->GetXaxis()->GetBinWidth(1),hist->GetMean()+hist->GetNbinsX()/2*hist->GetXaxis()->GetBinWidth(1));
 
 		fits[i]=new TF1(("gaus"+std::to_string(i)).c_str(),"gaus",range[i].first,range[i].second);
 		if(range[i].first<min_range) min_range=range[i].first;
 		if(range[i].second>max_range) max_range=range[i].second;
-		fits[i]->SetParameter(0,hist->GetMaximum());
 		fits[i]->SetParameter(1,hist->GetMean());
 		fits[i]->SetParameter(2,hist->GetRMS());
-		if(i==0)fits[i]->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/20,hist->GetMaximum()+(int)hist->GetMaximum()/3);
-		else fits[i]->SetParLimits(0,0,hist->GetMaximum()/2.5);
+		if(i==0){
+		fits[i]->SetParameter(0,hist->GetMaximum());
+	//	fits[i]->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/10,hist->GetMaximum()+(int)hist->GetMaximum()/5);
+		}
+		else{
+		fits[i]->SetParameter(0,hist->GetMaximum()/5);
+		fits[i]->SetParameter(2,5);
+		fits[i]->SetParLimits(0,0,hist->GetMaximum()/2);
+		fits[i]->SetParLimits(2,4.5,6.5);
+
+		}
 		std::cout << "___" << i << "___fit name___" << fits[i]->GetName() << std::endl; 
-		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0R");
+		hist->Fit(("gaus"+std::to_string(i)).c_str(),"0RM");
 		fits[i]->GetParameters(&par[i*3]);
 		global_formula+="gaus("+std::to_string(i*3)+")";
 		if(i != n_gaus-1) global_formula+="+";
 	}	
-	global_fit= new TF1("global_fit",(global_formula).c_str(),min_range+5*hist->GetBinWidth(1),max_range-3*hist->GetBinWidth(1));
+	global_fit= new TF1("global_fit",(global_formula).c_str(),min_range/*+5*hist->GetBinWidth(1)*/,max_range/*-3*hist->GetBinWidth(1)*/);
 	global_fit->SetParameters(par);
 	for(i=0;i<n_gaus*3;i++){
 	if(i%3 != 1)	global_fit->SetParLimits(i,0,1000);
 
 	}
-	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/20,hist->GetMaximum()+(int)hist->GetMaximum()/20);
-	hist->Fit("global_fit","0R");
+//	global_fit->SetParLimits(0,hist->GetMaximum()-(int)hist->GetMaximum()/10,hist->GetMaximum()+(int)hist->GetMaximum()/5);
+//	global_fit->SetParLimits(5,2,8);
+	hist->Fit("global_fit","0RM");
 	return global_fit;
 
 
